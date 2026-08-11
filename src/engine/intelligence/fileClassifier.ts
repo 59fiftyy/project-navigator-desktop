@@ -32,13 +32,16 @@ const configurationFiles = [
 ];
 
 function classifyFile(file: ProjectFile): ClassifiedFile {
-  if (documentationFiles[file.name]) {
+  const documentationPurpose = documentationFiles[file.name];
+
+  if (documentationPurpose) {
     return {
       ...file,
       category: "documentation",
-      purpose: documentationFiles[file.name],
+      purpose: documentationPurpose,
     };
   }
+
 
   if (configurationFiles.includes(file.name)) {
     return {

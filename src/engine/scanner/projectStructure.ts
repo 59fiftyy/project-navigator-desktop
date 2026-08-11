@@ -35,6 +35,11 @@ export function buildProjectStructure(
 
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
+
+      if (!part) {
+        continue;
+      }
+
       const isFile = i === parts.length - 1;
 
       currentPath = `${currentPath}/${part}`;
@@ -56,6 +61,7 @@ export function buildProjectStructure(
 
       currentNode = child;
     }
+
   }
 
   return root;
