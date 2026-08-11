@@ -5,10 +5,7 @@ export interface ProjectNode {
   children: ProjectNode[];
 }
 
-export function buildProjectStructure(
-  rootPath: string,
-  files: string[]
-): ProjectNode {
+export function buildProjectStructure(rootPath: string, files: string[]): ProjectNode {
   const root: ProjectNode = {
     name: rootPath.split("/").filter(Boolean).pop() ?? "Project",
     path: rootPath,
@@ -21,9 +18,7 @@ export function buildProjectStructure(
       continue;
     }
 
-    const relativePath = filePath
-      .slice(rootPath.length)
-      .replace(/^\/+/, "");
+    const relativePath = filePath.slice(rootPath.length).replace(/^\/+/, "");
 
     if (!relativePath) {
       continue;
@@ -44,9 +39,7 @@ export function buildProjectStructure(
 
       currentPath = `${currentPath}/${part}`;
 
-      let child = currentNode.children.find(
-        (node) => node.name === part
-      );
+      let child = currentNode.children.find((node) => node.name === part);
 
       if (!child) {
         child = {
@@ -61,7 +54,6 @@ export function buildProjectStructure(
 
       currentNode = child;
     }
-
   }
 
   return root;

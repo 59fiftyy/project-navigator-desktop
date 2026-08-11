@@ -15,8 +15,8 @@ export function WelcomeState() {
 
         <h1 className="mt-6 text-2xl font-semibold tracking-tight text-foreground">Atlas</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Choose a project folder on your computer. Atlas scans it, classifies every file, reads
-          its documentation and builds a complete picture of the project.
+          Choose a project folder on your computer. Atlas scans it, classifies every file, reads its
+          documentation and builds a complete picture of the project.
         </p>
 
         <Button className="mt-7 w-full" size="lg" onClick={() => void chooseProject()}>

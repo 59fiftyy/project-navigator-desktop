@@ -4,11 +4,7 @@ import type { ProjectFileSystem } from "../../platform/projectFileSystem";
 import { readDocumentation } from "../intelligence/documentationReader";
 import { interpretDocumentation } from "./documentationInterpreter";
 
-import type {
-  DocumentationKnowledge,
-  ProjectKnowledge,
-  ProjectDocumentation,
-} from "./types";
+import type { DocumentationKnowledge, ProjectKnowledge, ProjectDocumentation } from "./types";
 
 export async function buildProjectKnowledge(
   project: ProjectInfo,

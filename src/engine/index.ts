@@ -8,13 +8,7 @@ import type { ProjectFileSystem } from "../platform/projectFileSystem";
 import type { ProjectContext } from "./context/types";
 
 export type EngineStage =
-  | "scan"
-  | "analyze"
-  | "classify"
-  | "knowledge"
-  | "context"
-  | "understand"
-  | "done";
+  "scan" | "analyze" | "classify" | "knowledge" | "context" | "understand" | "done";
 
 export const ENGINE_STAGES: { id: EngineStage; label: string }[] = [
   { id: "scan", label: "Scanning project" },

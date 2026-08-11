@@ -9,10 +9,7 @@ function deriveProjectName(path: string): string {
   return segments[segments.length - 1] ?? normalized ?? "Project";
 }
 
-export async function scanProject(
-  path: string,
-  fs: ProjectFileSystem,
-): Promise<ProjectInfo> {
+export async function scanProject(path: string, fs: ProjectFileSystem): Promise<ProjectInfo> {
   const filePaths = await fs.scanDirectory(path);
 
   const files: ProjectFile[] = filePaths.map((filePath) => {

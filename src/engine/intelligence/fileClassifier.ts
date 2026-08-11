@@ -42,7 +42,6 @@ function classifyFile(file: ProjectFile): ClassifiedFile {
     };
   }
 
-
   if (configurationFiles.includes(file.name)) {
     return {
       ...file,
@@ -64,11 +63,7 @@ function classifyFile(file: ProjectFile): ClassifiedFile {
     };
   }
 
-  if (
-    ["ts", "tsx", "js", "jsx", "rs", "py", "css", "html"].includes(
-      file.extension
-    )
-  ) {
+  if (["ts", "tsx", "js", "jsx", "rs", "py", "css", "html"].includes(file.extension)) {
     return {
       ...file,
       category: "source",
@@ -76,11 +71,7 @@ function classifyFile(file: ProjectFile): ClassifiedFile {
     };
   }
 
-  if (
-    ["png", "jpg", "jpeg", "svg", "webp", "ico", "icns"].includes(
-      file.extension
-    )
-  ) {
+  if (["png", "jpg", "jpeg", "svg", "webp", "ico", "icns"].includes(file.extension)) {
     return {
       ...file,
       category: "asset",
@@ -88,10 +79,7 @@ function classifyFile(file: ProjectFile): ClassifiedFile {
     };
   }
 
-  if (
-    file.name === "package-lock.json" ||
-    file.name === "Cargo.lock"
-  ) {
+  if (file.name === "package-lock.json" || file.name === "Cargo.lock") {
     return {
       ...file,
       category: "dependency",

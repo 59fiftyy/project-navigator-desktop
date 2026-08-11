@@ -39,7 +39,10 @@ export function parseRoadmap(roadmap: string | null): RoadmapSection[] {
       continue;
     }
 
-    const item = line.replace(/^[-*+]\s+/, "").replace(/^\d+[.)]\s+/, "").trim();
+    const item = line
+      .replace(/^[-*+]\s+/, "")
+      .replace(/^\d+[.)]\s+/, "")
+      .trim();
     if (!item || item === "---") continue;
 
     if (!current) {

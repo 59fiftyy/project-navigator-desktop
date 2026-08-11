@@ -13,7 +13,7 @@ export interface InterpretedDocumentation {
 }
 
 export function interpretDocumentation(
-  documentation: DocumentationKnowledge[]
+  documentation: DocumentationKnowledge[],
 ): InterpretedDocumentation {
   const result: InterpretedDocumentation = {};
 

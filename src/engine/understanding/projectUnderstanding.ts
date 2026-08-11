@@ -43,11 +43,8 @@ function extractList(content: string | null): string[] {
     .filter((line) => line !== "-");
 }
 
-export function understandProject(
-  context: ProjectContextBase
-): ProjectUnderstanding {
-  const documentation =
-    context.knowledge.documentation.interpreted;
+export function understandProject(context: ProjectContextBase): ProjectUnderstanding {
+  const documentation = context.knowledge.documentation.interpreted;
 
   return {
     projectName: context.project.name,
@@ -60,17 +57,13 @@ export function understandProject(
 
     features: extractList(documentation.features ?? null),
 
-    requirements: extractList(
-      documentation.requirements ?? null
-    ),
+    requirements: extractList(documentation.requirements ?? null),
 
     architecture: documentation.architecture ?? null,
 
     roadmap: documentation.roadmap ?? null,
 
-    decisions: extractList(
-      documentation.decisions ?? null
-    ),
+    decisions: extractList(documentation.decisions ?? null),
 
     technologies: context.project.technologies,
 

@@ -1,11 +1,5 @@
 export type FileCategory =
-  | "documentation"
-  | "configuration"
-  | "source"
-  | "test"
-  | "asset"
-  | "dependency"
-  | "unknown";
+  "documentation" | "configuration" | "source" | "test" | "asset" | "dependency" | "unknown";
 
 export interface ClassifiedFile {
   path: string;
