@@ -1,5 +1,6 @@
 import type { ProjectInfo } from "../scanner/types";
 import type { ClassifiedFile } from "../intelligence/types";
+import type { ProjectFileSystem } from "../../platform/projectFileSystem";
 import { readDocumentation } from "../intelligence/documentationReader";
 import { interpretDocumentation } from "./documentationInterpreter";
 
@@ -11,23 +12,19 @@ import type {
 
 export async function buildProjectKnowledge(
   project: ProjectInfo,
-  classifiedFiles: ClassifiedFile[]
+  classifiedFiles: ClassifiedFile[],
+  fs: ProjectFileSystem,
 ): Promise<ProjectKnowledge> {
-  const documentationFiles = await readDocumentation(
-    classifiedFiles
-  );
+  const documentationFiles = await readDocumentation(classifiedFiles, fs);
 
-  const documentation: DocumentationKnowledge[] =
-    documentationFiles.map((file) => ({
-      path: file.path,
-      name: file.name,
-      purpose: file.purpose,
-      content: file.content,
-    }));
+  const documentation: DocumentationKnowledge[] = documentationFiles.map((file) => ({
+    path: file.path,
+    name: file.name,
+    purpose: file.purpose,
+    content: file.content,
+  }));
 
-  const interpreted = interpretDocumentation(
-    documentation
-  );
+  const interpreted = interpretDocumentation(documentation);
 
   const projectDocumentation: ProjectDocumentation = {
     files: documentation,

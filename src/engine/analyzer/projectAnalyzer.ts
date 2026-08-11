@@ -1,12 +1,15 @@
 import type { ProjectInfo } from "../scanner/types";
-import { classifyFiles } from "../intelligence/fileClassifier";
+import type { ClassifiedFile } from "../intelligence/types";
 import type { ProjectAnalysis } from "./types";
 
+/**
+ * Analysis consumes the single classification pass produced by the pipeline,
+ * so files are never classified twice.
+ */
 export function analyzeProject(
-  project: ProjectInfo
+  project: ProjectInfo,
+  classifiedFiles: ClassifiedFile[],
 ): ProjectAnalysis {
-  const classifiedFiles = classifyFiles(project.files);
-
   const importantFileNames = [
     "README.md",
     "package.json",
