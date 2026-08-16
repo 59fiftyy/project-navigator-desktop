@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { copyText } from "@/lib/clipboard";
 
 function sortNodes(nodes: ProjectNode[]): ProjectNode[] {
   return [...nodes].sort((a, b) => {
@@ -208,14 +209,21 @@ export function ProjectMap() {
     return null;
   }
 
+  const copy = async (value: string, label: string) => {
+    const copied = await copyText(value);
+    if (copied) {
+      toast.success(`${label} copied`);
+    } else {
+      toast.error(`Could not copy ${label.toLowerCase()}`);
+    }
+  };
+
   const copyName = (node: ProjectNode) => {
-    void navigator.clipboard.writeText(node.name);
-    toast.success("Name copied");
+    void copy(node.name, "Name");
   };
 
   const copyPath = (node: ProjectNode) => {
-    void navigator.clipboard.writeText(relativePath(context, node.path) || ".");
-    toast.success("Path copied");
+    void copy(relativePath(context, node.path) || ".", "Path");
   };
 
   const selectedFile = selected ? classifiedByPath.get(selected.path) : undefined;
