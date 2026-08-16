@@ -112,9 +112,7 @@ export function DocumentationScreen() {
 
           {active.content === null ? (
             <div className="space-y-4">
-              <EmptyHint>
-                {active.section.fileName} does not exist in this project yet.
-              </EmptyHint>
+              <EmptyHint>{active.section.fileName} does not exist in this project yet.</EmptyHint>
 
               <div className="flex justify-center">
                 <Button variant="outline" disabled={busy} onClick={() => void create()}>
