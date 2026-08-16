@@ -34,6 +34,7 @@ interface ProjectState {
   lastAnalyzedAt: Date | null;
   chooseProject: () => Promise<void>;
   reanalyze: () => Promise<void>;
+  writeProjectFile: (path: string, content: string) => Promise<void>;
   clearProject: () => Promise<void>;
 }
 
@@ -135,6 +136,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     await analyze(projectPath);
   }, [analyze, projectPath]);
 
+  /** Writes a real file inside the project, then re-runs the engine. */
+  const writeProjectFile = useCallback(
+    async (path: string, content: string) => {
+      const fs = await getProjectFileSystem();
+      await fs.writeFile(path, content);
+      if (projectPath) {
+        await analyze(projectPath);
+      }
+    },
+    [analyze, projectPath],
+  );
+
   const clearProject = useCallback(async () => {
     runId.current++;
     await clearLastProjectPath();
@@ -158,6 +171,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       chooseProject,
       reanalyze,
       clearProject,
+      writeProjectFile,
     }),
     [
       status,
@@ -170,6 +184,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       chooseProject,
       reanalyze,
       clearProject,
+      writeProjectFile,
     ],
   );
 

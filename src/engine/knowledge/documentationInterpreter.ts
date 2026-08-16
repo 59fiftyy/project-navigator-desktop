@@ -2,6 +2,7 @@ import type { DocumentationKnowledge } from "./types";
 
 export interface InterpretedDocumentation {
   vision?: string;
+  goals?: string;
   requirements?: string;
   architecture?: string;
   roadmap?: string;
@@ -22,6 +23,8 @@ export function interpretDocumentation(
 
     if (name === "vision.md") {
       result.vision = document.content;
+    } else if (name === "goals.md") {
+      result.goals = document.content;
     } else if (name === "prd.md") {
       result.requirements = document.content;
     } else if (name === "architecture.md") {

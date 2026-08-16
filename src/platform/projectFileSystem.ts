@@ -7,4 +7,5 @@
 export interface ProjectFileSystem {
   scanDirectory(path: string): Promise<string[]>;
   readFile(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<void>;
 }

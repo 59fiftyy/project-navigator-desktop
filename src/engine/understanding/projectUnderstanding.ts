@@ -53,7 +53,7 @@ export function understandProject(context: ProjectContextBase): ProjectUnderstan
 
     vision: documentation.vision ?? null,
 
-    goals: extractList(documentation.vision ?? null),
+    goals: extractList(documentation.goals ?? documentation.vision ?? null),
 
     features: extractList(documentation.features ?? null),
 

@@ -1,14 +1,23 @@
-import { Compass, FolderTree, LayoutDashboard, Map, NotebookPen, Settings } from "lucide-react";
+import {
+  Compass,
+  FileText,
+  FolderTree,
+  LayoutDashboard,
+  Map,
+  NotebookPen,
+  Settings,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useProject } from "@/app/projectStore";
 import { Button } from "@/components/ui/button";
 
-export type SectionId = "dashboard" | "map" | "roadmap" | "notes" | "settings";
+export type SectionId = "dashboard" | "map" | "docs" | "roadmap" | "notes" | "settings";
 
 const items: { id: SectionId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "map", label: "Project Map", icon: FolderTree },
+  { id: "docs", label: "Documentation", icon: FileText },
   { id: "roadmap", label: "Roadmap", icon: Map },
   { id: "notes", label: "Notes", icon: NotebookPen },
   { id: "settings", label: "Settings", icon: Settings },

@@ -14,4 +14,7 @@ export const unavailableProjectFileSystem: ProjectFileSystem = {
   async readFile(): Promise<string> {
     throw new Error(DESKTOP_ONLY_MESSAGE);
   },
+  async writeFile(): Promise<void> {
+    throw new Error(DESKTOP_ONLY_MESSAGE);
+  },
 };

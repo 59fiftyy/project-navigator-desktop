@@ -4,6 +4,7 @@ import type { ClassifiedFile, FileCategory } from "./types";
 const documentationFiles: Record<string, string> = {
   "README.md": "Project documentation",
   "Vision.md": "Project vision",
+  "Goals.md": "Project goals",
   "PRD.md": "Product requirements",
   "Roadmap.md": "Project roadmap",
   "Features.md": "Feature definitions",
