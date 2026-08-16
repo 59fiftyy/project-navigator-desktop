@@ -9,7 +9,12 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 
-import { loadProject, type EngineStage, type ProjectContext } from "@/engine";
+import {
+  loadProject,
+  refreshProjectDocumentation,
+  type EngineStage,
+  type ProjectContext,
+} from "@/engine";
 import {
   getProjectFileSystem,
   isDesktopRuntime,
@@ -56,6 +61,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const desktop = useMemo(() => isDesktopRuntime(), []);
   const runId = useRef(0);
+  const contextRef = useRef<ProjectContext | null>(null);
+
+  useEffect(() => {
+    contextRef.current = context;
+  }, [context]);
 
   /** The one and only place the Atlas Engine is invoked. */
   const analyze = useCallback(async (path: string) => {
