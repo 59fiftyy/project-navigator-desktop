@@ -136,17 +136,24 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     await analyze(projectPath);
   }, [analyze, projectPath]);
 
-  /** Writes a real file inside the project, then re-runs the engine. */
-  const writeProjectFile = useCallback(
-    async (path: string, content: string) => {
-      const fs = await getProjectFileSystem();
-      await fs.writeFile(path, content);
-      if (projectPath) {
-        await analyze(projectPath);
-      }
-    },
-    [analyze, projectPath],
-  );
+  /**
+   * Writes a real file inside the project and refreshes only the
+   * documentation-derived parts of the context. A full engine run is reserved
+   * for the explicit "Re-analyze" action.
+   */
+  const writeProjectFile = useCallback(async (path: string, content: string) => {
+    const fs = await getProjectFileSystem();
+    await fs.writeFile(path, content);
+
+    const current = contextRef.current;
+    if (!current) return;
+
+    const refreshed = await refreshProjectDocumentation(current, fs, path);
+
+    if (contextRef.current === current) {
+      setContext(refreshed);
+    }
+  }, []);
 
   const clearProject = useCallback(async () => {
     runId.current++;
