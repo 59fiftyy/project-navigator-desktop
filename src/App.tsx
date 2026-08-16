@@ -31,7 +31,8 @@ function Shell() {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">
       <Sidebar active={section} onNavigate={setSection} />
-      <main className="flex-1 overflow-y-auto">
+
+      <main className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
         {section === "dashboard" && <Dashboard />}
         {section === "map" && <ProjectMap />}
         {section === "roadmap" && <RoadmapScreen />}

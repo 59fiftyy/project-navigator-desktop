@@ -2,18 +2,37 @@ import { FileText, Folder, Layers, RotateCw, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useProject } from "@/app/projectStore";
-import { countCategories, documentationCount, relativePath } from "@/app/projectInsights";
+import {
+  countCategories,
+  documentationCount,
+  relativePath,
+} from "@/app/projectInsights";
 import { ScreenHeader, EmptyHint } from "@/ui/layout/ScreenHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
     <Card className="gap-0 py-4">
       <CardContent className="px-4">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="mt-1.5 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="mt-1.5 text-2xl font-semibold tabular-nums text-foreground">
+          {value}
+        </p>
       </CardContent>
     </Card>
   );
@@ -41,7 +60,13 @@ function Panel({
   );
 }
 
-function List({ items, empty }: { items: string[]; empty: string }) {
+function List({
+  items,
+  empty,
+}: {
+  items: string[];
+  empty: string;
+}) {
   if (items.length === 0) {
     return <EmptyHint>{empty}</EmptyHint>;
   }
@@ -67,12 +92,16 @@ export function Dashboard() {
   const categories = countCategories(analysis.classifiedFiles);
 
   return (
-    <div className="pb-12">
+    <div className="min-h-full pb-12">
       <ScreenHeader
         title={project.name}
         description={project.path}
         actions={
-          <Button variant="outline" size="sm" onClick={() => void reanalyze()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void reanalyze()}
+          >
             <RotateCw className="size-4" />
             Re-analyze
           </Button>
@@ -82,16 +111,33 @@ export function Dashboard() {
       <div className="space-y-6 px-8 py-6">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat label="Files" value={analysis.totalFiles} />
-          <Stat label="Documentation" value={documentationCount(context)} />
-          <Stat label="Directories" value={analysis.directories.length} />
-          <Stat label="Technologies" value={analysis.technologies.length} />
+          <Stat
+            label="Documentation"
+            value={documentationCount(context)}
+          />
+          <Stat
+            label="Directories"
+            value={analysis.directories.length}
+          />
+          <Stat
+            label="Technologies"
+            value={analysis.technologies.length}
+          />
         </div>
 
-        <Panel title="Project type & stack" icon={<Layers className="size-4 text-primary" />}>
-          <p className="text-sm text-foreground/85">{analysis.projectType}</p>
+        <Panel
+          title="Project type & stack"
+          icon={<Layers className="size-4 text-primary" />}
+        >
+          <p className="text-sm text-foreground/85">
+            {analysis.projectType}
+          </p>
+
           <div className="mt-3 flex flex-wrap gap-1.5">
             {analysis.technologies.length === 0 ? (
-              <span className="text-sm text-muted-foreground">No technologies detected.</span>
+              <span className="text-sm text-muted-foreground">
+                No technologies detected.
+              </span>
             ) : (
               analysis.technologies.map((tech) => (
                 <Badge key={tech} variant="secondary">
@@ -102,9 +148,12 @@ export function Dashboard() {
           </div>
         </Panel>
 
-        <Panel title="Vision" icon={<Sparkles className="size-4 text-primary" />}>
+        <Panel
+          title="Vision"
+          icon={<Sparkles className="size-4 text-primary" />}
+        >
           {understanding.vision ? (
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/85">
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/85 overscroll-contain">
               {understanding.vision}
             </pre>
           ) : (
@@ -114,27 +163,49 @@ export function Dashboard() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Panel title="Goals">
-            <List items={understanding.goals} empty="No goals extracted." />
+            <List
+              items={understanding.goals}
+              empty="No goals extracted."
+            />
           </Panel>
+
           <Panel title="Features">
-            <List items={understanding.features} empty="No Features.md found." />
+            <List
+              items={understanding.features}
+              empty="No Features.md found."
+            />
           </Panel>
+
           <Panel title="Requirements">
-            <List items={understanding.requirements} empty="No PRD.md found." />
+            <List
+              items={understanding.requirements}
+              empty="No PRD.md found."
+            />
           </Panel>
+
           <Panel title="Decisions">
-            <List items={understanding.decisions} empty="No ADR.md found." />
+            <List
+              items={understanding.decisions}
+              empty="No ADR.md found."
+            />
           </Panel>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Directories" icon={<Folder className="size-4 text-primary" />}>
+          <Panel
+            title="Directories"
+            icon={<Folder className="size-4 text-primary" />}
+          >
             {analysis.directories.length === 0 ? (
               <EmptyHint>No top-level directories.</EmptyHint>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {analysis.directories.map((dir) => (
-                  <Badge key={dir} variant="outline" className="font-mono text-xs">
+                  <Badge
+                    key={dir}
+                    variant="outline"
+                    className="font-mono text-xs"
+                  >
                     {dir}
                   </Badge>
                 ))}
@@ -148,15 +219,22 @@ export function Dashboard() {
             ) : (
               <ul className="space-y-2">
                 {categories.map(({ category, count }) => {
-                  const percent = Math.round((count / Math.max(analysis.totalFiles, 1)) * 100);
+                  const percent = Math.round(
+                    (count / Math.max(analysis.totalFiles, 1)) * 100,
+                  );
+
                   return (
                     <li key={category}>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="capitalize text-foreground/85">{category}</span>
+                        <span className="capitalize text-foreground/85">
+                          {category}
+                        </span>
+
                         <span className="tabular-nums text-muted-foreground">
                           {count} · {percent}%
                         </span>
                       </div>
+
                       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
                         <div
                           className="h-full rounded-full bg-primary"
@@ -171,7 +249,10 @@ export function Dashboard() {
           </Panel>
         </div>
 
-        <Panel title="Important files" icon={<FileText className="size-4 text-primary" />}>
+        <Panel
+          title="Important files"
+          icon={<FileText className="size-4 text-primary" />}
+        >
           {analysis.importantFiles.length === 0 ? (
             <EmptyHint>No key project files detected.</EmptyHint>
           ) : (
@@ -187,7 +268,7 @@ export function Dashboard() {
 
         <Panel title="Roadmap summary">
           {understanding.roadmap ? (
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/85">
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/85 overscroll-contain">
               {understanding.roadmap}
             </pre>
           ) : (
