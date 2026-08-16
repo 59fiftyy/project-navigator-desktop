@@ -7,6 +7,7 @@ export interface DocumentationKnowledge {
 
 export interface InterpretedDocumentation {
   vision?: string;
+  goals?: string;
   requirements?: string;
   architecture?: string;
   roadmap?: string;

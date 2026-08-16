@@ -9,6 +9,9 @@ export const tauriProjectFileSystem: ProjectFileSystem = {
   async readFile(path: string): Promise<string> {
     return await invoke<string>("read_file", { path });
   },
+  async writeFile(path: string, content: string): Promise<void> {
+    await invoke("write_file", { path, content });
+  },
 };
 
 export async function chooseProjectDirectory(): Promise<string | null> {

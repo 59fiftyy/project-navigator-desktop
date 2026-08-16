@@ -107,12 +107,24 @@ fn read_file(path: String) -> Result<String, String> {
     fs::read_to_string(file_path).map_err(|error| format!("{path}: {error}"))
 }
 
+/// Writes a UTF-8 text file to disk, creating parent directories when needed.
+#[tauri::command]
+fn write_file(path: String, content: String) -> Result<(), String> {
+    let file_path = Path::new(&path);
+
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| format!("{path}: {error}"))?;
+    }
+
+    fs::write(file_path, content).map_err(|error| format!("{path}: {error}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![scan_directory, read_file])
+        .invoke_handler(tauri::generate_handler![scan_directory, read_file, write_file])
         .run(tauri::generate_context!())
         .expect("error while running Atlas");
 }
