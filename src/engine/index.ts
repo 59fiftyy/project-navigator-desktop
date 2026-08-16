@@ -74,6 +74,7 @@ export { buildProjectKnowledge };
 export { buildProjectContext };
 export { buildProjectContextBase };
 export { understandProject };
+export { refreshProjectDocumentation } from "./documentation/refreshDocumentation";
 
 export type { ProjectContext, ProjectContextBase } from "./context/types";
 export type { ProjectInfo, ProjectFile } from "./scanner/types";
