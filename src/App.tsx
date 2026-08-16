@@ -7,6 +7,7 @@ import { ErrorState } from "@/ui/screens/ErrorState";
 import { WelcomeState } from "@/ui/screens/WelcomeState";
 import { Dashboard } from "@/ui/screens/Dashboard";
 import { ProjectMap } from "@/ui/screens/ProjectMap";
+import { DocumentationScreen } from "@/ui/screens/DocumentationScreen";
 import { RoadmapScreen } from "@/ui/screens/RoadmapScreen";
 import { NotesScreen } from "@/ui/screens/NotesScreen";
 import { SettingsScreen } from "@/ui/screens/SettingsScreen";
@@ -35,6 +36,7 @@ function Shell() {
       <main className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
         {section === "dashboard" && <Dashboard />}
         {section === "map" && <ProjectMap />}
+        {section === "docs" && <DocumentationScreen />}
         {section === "roadmap" && <RoadmapScreen />}
         {section === "notes" && <NotesScreen />}
         {section === "settings" && <SettingsScreen />}
