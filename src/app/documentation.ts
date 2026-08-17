@@ -65,36 +65,20 @@ export interface ResolvedDocument {
   content: string | null;
 }
 
-function parentDirectory(path: string): string {
-  const index = path.lastIndexOf("/");
-  return index === -1 ? path : path.slice(0, index);
-}
+/** Folder Atlas creates its own documentation files in. */
+export const ATLAS_DOCS_FOLDER = "Atlas";
 
 /**
- * Directory a new documentation file should be created in: alongside the
- * documentation the project already has, otherwise the project root.
+ * Directory a new documentation file is created in. Atlas always writes the
+ * files it creates into a dedicated `Atlas/` folder inside the project, so it
+ * stays obvious which documents Atlas authored. Existing documentation
+ * elsewhere in the project is never moved.
  */
 export function documentationDirectory(context: ProjectContext): string {
-  const counts = new Map<string, number>();
-
-  for (const file of context.knowledge.documentation.files) {
-    if (file.name.toLowerCase() === "readme.md") continue;
-    const dir = parentDirectory(file.path);
-    counts.set(dir, (counts.get(dir) ?? 0) + 1);
-  }
-
-  let best: string | null = null;
-  let bestCount = 0;
-
-  for (const [dir, count] of counts) {
-    if (count > bestCount) {
-      best = dir;
-      bestCount = count;
-    }
-  }
-
-  return best ?? context.project.path.replace(/[\\/]+$/, "");
+  const root = context.project.path.replace(/[\\/]+$/, "");
+  return `${root}/${ATLAS_DOCS_FOLDER}`;
 }
+
 
 export function resolveDocuments(context: ProjectContext): ResolvedDocument[] {
   return DOCUMENTATION_SECTIONS.map((section) => {
