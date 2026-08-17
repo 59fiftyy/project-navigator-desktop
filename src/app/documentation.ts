@@ -48,7 +48,15 @@ export const DOCUMENTATION_SECTIONS: DocumentationSection[] = [
     description: "Architecture decision records",
     template: "# Decisions\n\nRecord architecture decisions here.\n",
   },
+  {
+    id: "roadmap",
+    label: "Roadmap",
+    fileName: "Roadmap.md",
+    description: "Planned work over time",
+    template: "# Roadmap\n\nWrite the project roadmap here.\n",
+  },
 ];
+
 
 export interface ResolvedDocument {
   section: DocumentationSection;
