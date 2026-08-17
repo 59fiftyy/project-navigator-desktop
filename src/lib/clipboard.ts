@@ -12,17 +12,24 @@ export async function copyText(value: string): Promise<boolean> {
     return false;
   }
 
+  // The synchronous path runs first: inside the Tauri webview the async
+  // clipboard can silently hang or reject once a menu has closed.
+  if (copyWithTextarea(text)) {
+    return true;
+  }
+
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }
   } catch {
-    // fall through to the legacy path
+    // ignore — reported as a failure below
   }
 
-  return copyWithTextarea(text);
+  return false;
 }
+
 
 function copyWithTextarea(text: string): boolean {
   if (typeof document === "undefined") {
