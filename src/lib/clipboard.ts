@@ -1,10 +1,12 @@
 /**
  * Single clipboard implementation used across Atlas.
  *
- * The Tauri webview does not always expose a working async clipboard, so this
- * falls back to a hidden textarea + execCommand and always reports whether the
- * copy actually succeeded.
+ * Inside the Tauri webview the DOM clipboard APIs are unreliable, so the
+ * native clipboard plugin is tried first and the browser paths act as
+ * fallbacks. Always reports whether the copy actually succeeded.
  */
+import { isDesktopRuntime } from "@/platform/runtime";
+
 export async function copyText(value: string): Promise<boolean> {
   const text = value ?? "";
 
@@ -12,10 +14,14 @@ export async function copyText(value: string): Promise<boolean> {
     return false;
   }
 
-  // The synchronous path runs first: inside the Tauri webview the async
-  // clipboard can silently hang or reject once a menu has closed.
-  if (copyWithTextarea(text)) {
-    return true;
+  if (isDesktopRuntime()) {
+    try {
+      const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
+      await writeText(text);
+      return true;
+    } catch {
+      // fall through to the web paths below
+    }
   }
 
   try {
@@ -24,12 +30,11 @@ export async function copyText(value: string): Promise<boolean> {
       return true;
     }
   } catch {
-    // ignore — reported as a failure below
+    // ignore — the textarea fallback runs next
   }
 
-  return false;
+  return copyWithTextarea(text);
 }
-
 
 function copyWithTextarea(text: string): boolean {
   if (typeof document === "undefined") {

@@ -55,7 +55,22 @@ export const DOCUMENTATION_SECTIONS: DocumentationSection[] = [
     description: "Planned work over time",
     template: "# Roadmap\n\nWrite the project roadmap here.\n",
   },
+  {
+    id: "readme",
+    label: "README",
+    fileName: "README.md",
+    description: "Project overview",
+    template: "# README\n\nDescribe the project here.\n",
+  },
 ];
+
+/**
+ * Ordering rule: README.md is always shown last because it is typically the
+ * longest document. Every other section keeps its declared order.
+ */
+function documentSortWeight(fileName: string): number {
+  return fileName.toLowerCase() === "readme.md" ? 1 : 0;
+}
 
 
 export interface ResolvedDocument {
@@ -81,19 +96,37 @@ export function documentationDirectory(context: ProjectContext): string {
 
 
 export function resolveDocuments(context: ProjectContext): ResolvedDocument[] {
+  const root = context.project.path.replace(/[\\/]+$/, "");
+
   return DOCUMENTATION_SECTIONS.map((section) => {
-    const match = context.knowledge.documentation.files.find(
+    const candidates = context.knowledge.documentation.files.filter(
       (file) => file.name.toLowerCase() === section.fileName.toLowerCase(),
     );
+
+    // Prefer the project-root copy (matters for README.md), then the shortest path.
+    const match =
+      candidates.find((file) => file.path === `${root}/${section.fileName}`) ??
+      [...candidates].sort((a, b) => a.path.length - b.path.length)[0];
 
     return {
       section,
       path: match?.path ?? null,
       content: match?.content ?? null,
     };
-  });
+  }).sort(
+    (a, b) => documentSortWeight(a.section.fileName) - documentSortWeight(b.section.fileName),
+  );
 }
 
 export function targetPath(context: ProjectContext, document: ResolvedDocument): string {
-  return document.path ?? `${documentationDirectory(context)}/${document.section.fileName}`;
+  if (document.path) {
+    return document.path;
+  }
+
+  // README belongs at the project root; Atlas-authored docs go in Atlas/.
+  if (document.section.fileName.toLowerCase() === "readme.md") {
+    return `${context.project.path.replace(/[\\/]+$/, "")}/${document.section.fileName}`;
+  }
+
+  return `${documentationDirectory(context)}/${document.section.fileName}`;
 }

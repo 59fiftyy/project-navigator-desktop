@@ -222,8 +222,9 @@ export function ProjectMap() {
     void copy(node.name, "Name");
   };
 
+  // Copies the real filesystem path, not the display label.
   const copyPath = (node: ProjectNode) => {
-    void copy(relativePath(context, node.path) || ".", "Path");
+    void copy(node.path, "Path");
   };
 
   const selectedFile = selected ? classifiedByPath.get(selected.path) : undefined;
