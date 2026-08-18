@@ -119,12 +119,142 @@ fn write_file(path: String, content: String) -> Result<(), String> {
     fs::write(file_path, content).map_err(|error| format!("{path}: {error}"))
 }
 
+/// Result of a Git command execution.
+#[derive(serde::Serialize)]
+pub struct GitOutput {
+    pub stdout: String,
+    pub stderr: String,
+}
+
+fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
+    let mut command = std::process::Command::new("git");
+    command.args(args);
+
+    if let Some(dir) = cwd {
+        command.current_dir(dir);
+    }
+
+    let output = command
+        .output()
+        .map_err(|error| format!("Failed to run git: {error}. Is Git installed?"))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if output.status.success() {
+        Ok(GitOutput { stdout, stderr })
+    } else {
+        Err(if stderr.trim().is_empty() {
+            stdout
+        } else {
+            stderr
+        })
+    }
+}
+
+/// True when `path` is inside (or is) a Git working tree.
+#[tauri::command]
+fn git_is_repository(path: String) -> Result<bool, String> {
+    if !Path::new(&path).is_dir() {
+        return Ok(false);
+    }
+
+    match run_git(&["rev-parse", "--is-inside-work-tree"], Some(&path)) {
+        Ok(output) => Ok(output.stdout.trim() == "true"),
+        Err(_) => Ok(false),
+    }
+}
+
+/// Short status/branch/remote summary for a repository.
+#[tauri::command]
+fn git_status(path: String) -> Result<GitOutput, String> {
+    run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))
+}
+
+/// Configured origin remote URL, when present.
+#[tauri::command]
+fn git_remote_url(path: String) -> Result<String, String> {
+    match run_git(&["remote", "get-url", "origin"], Some(&path)) {
+        Ok(output) => Ok(output.stdout.trim().to_string()),
+        Err(_) => Ok(String::new()),
+    }
+}
+
+/// Clones `url` into `destination`, optionally under `folder_name`.
+#[tauri::command]
+fn git_clone(url: String, destination: String, folder_name: Option<String>) -> Result<String, String> {
+    let root = Path::new(&destination);
+
+    if !root.is_dir() {
+        return Err(format!("Destination is not a directory: {destination}"));
+    }
+
+    let name = folder_name
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| {
+            url.trim_end_matches('/')
+                .rsplit('/')
+                .next()
+                .unwrap_or("repository")
+                .trim_end_matches(".git")
+                .to_string()
+        });
+
+    if name.contains('/') || name.contains('\\') || name == ".." {
+        return Err(format!("Invalid folder name: {name}"));
+    }
+
+    let target = root.join(&name);
+
+    if target.exists() {
+        return Err(format!("Target folder already exists: {}", target.display()));
+    }
+
+    let target_string = target.to_string_lossy().to_string();
+
+    run_git(&["clone", url.as_str(), target_string.as_str()], None)?;
+
+    Ok(target_string.replace('\\', "/"))
+}
+
+/// Pulls from the configured remote. Refuses to run when the working tree is dirty.
+#[tauri::command]
+fn git_pull(path: String) -> Result<String, String> {
+    let status = run_git(&["status", "--porcelain"], Some(&path))?;
+
+    if !status.stdout.trim().is_empty() {
+        return Err(
+            "This repository has uncommitted local changes. Commit or stash them before updating."
+                .to_string(),
+        );
+    }
+
+    let output = run_git(&["pull", "--ff-only"], Some(&path))?;
+
+    Ok(if output.stdout.trim().is_empty() {
+        output.stderr
+    } else {
+        output.stdout
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![scan_directory, read_file, write_file])
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .invoke_handler(tauri::generate_handler![
+            scan_directory,
+            read_file,
+            write_file,
+            git_is_repository,
+            git_status,
+            git_remote_url,
+            git_clone,
+            git_pull
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Atlas");
 }
