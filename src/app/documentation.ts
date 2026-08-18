@@ -55,7 +55,22 @@ export const DOCUMENTATION_SECTIONS: DocumentationSection[] = [
     description: "Planned work over time",
     template: "# Roadmap\n\nWrite the project roadmap here.\n",
   },
+  {
+    id: "readme",
+    label: "README",
+    fileName: "README.md",
+    description: "Project overview",
+    template: "# README\n\nDescribe the project here.\n",
+  },
 ];
+
+/**
+ * Ordering rule: README.md is always shown last because it is typically the
+ * longest document. Every other section keeps its declared order.
+ */
+function documentSortWeight(fileName: string): number {
+  return fileName.toLowerCase() === "readme.md" ? 1 : 0;
+}
 
 
 export interface ResolvedDocument {
