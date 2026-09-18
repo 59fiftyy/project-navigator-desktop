@@ -36,9 +36,7 @@ function parseBranch(statusOutput: string): string | null {
 }
 
 function parseDirty(statusOutput: string): boolean {
-  return statusOutput
-    .split("\n")
-    .some((line) => line.trim().length > 0 && !line.startsWith("## "));
+  return statusOutput.split("\n").some((line) => line.trim().length > 0 && !line.startsWith("## "));
 }
 
 export async function inspectRepository(path: string): Promise<GitRepositoryInfo> {

@@ -131,11 +131,12 @@ export function GitScreen() {
               </p>
             </div>
 
-            <Button
-              disabled={!url.trim() || !destination || cloning}
-              onClick={() => void clone()}
-            >
-              {cloning ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            <Button disabled={!url.trim() || !destination || cloning} onClick={() => void clone()}>
+              {cloning ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
               {cloning ? "Cloning…" : "Clone Repository"}
             </Button>
 
@@ -151,7 +152,9 @@ export function GitScreen() {
                   <CheckCircle2 className="size-4 text-primary" />
                   Cloned to
                 </p>
-                <p className="break-all font-mono text-[11px] text-muted-foreground">{clonedPath}</p>
+                <p className="break-all font-mono text-[11px] text-muted-foreground">
+                  {clonedPath}
+                </p>
                 <Button size="sm" variant="outline" onClick={() => void openProject(clonedPath)}>
                   Open as project
                 </Button>

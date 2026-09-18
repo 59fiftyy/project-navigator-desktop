@@ -72,7 +72,6 @@ function documentSortWeight(fileName: string): number {
   return fileName.toLowerCase() === "readme.md" ? 1 : 0;
 }
 
-
 export interface ResolvedDocument {
   section: DocumentationSection;
   /** Absolute path of the existing file, or null when it does not exist. */
@@ -93,7 +92,6 @@ export function documentationDirectory(context: ProjectContext): string {
   const root = context.project.path.replace(/[\\/]+$/, "");
   return `${root}/${ATLAS_DOCS_FOLDER}`;
 }
-
 
 export function resolveDocuments(context: ProjectContext): ResolvedDocument[] {
   const root = context.project.path.replace(/[\\/]+$/, "");

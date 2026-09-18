@@ -38,6 +38,7 @@ interface ProjectState {
   desktop: boolean;
   lastAnalyzedAt: Date | null;
   chooseProject: () => Promise<void>;
+  openProject: (path: string) => Promise<void>;
   reanalyze: () => Promise<void>;
   writeProjectFile: (path: string, content: string) => Promise<void>;
   clearProject: () => Promise<void>;
@@ -141,6 +142,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }, [analyze]);
 
+  /** Opens a known folder as the active project (used after a Git clone). */
+  const openProject = useCallback(
+    async (path: string) => {
+      setProjectPath(path);
+      await saveLastProjectPath(path);
+      await analyze(path);
+    },
+    [analyze],
+  );
+
   const reanalyze = useCallback(async () => {
     if (!projectPath) return;
     await analyze(projectPath);
@@ -186,6 +197,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       desktop,
       lastAnalyzedAt,
       chooseProject,
+      openProject,
       reanalyze,
       clearProject,
       writeProjectFile,
@@ -199,6 +211,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       desktop,
       lastAnalyzedAt,
       chooseProject,
+      openProject,
       reanalyze,
       clearProject,
       writeProjectFile,
