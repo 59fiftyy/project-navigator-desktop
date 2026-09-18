@@ -222,89 +222,138 @@ where
 
 /// True when `path` is inside (or is) a Git working tree.
 #[tauri::command]
-fn git_is_repository(path: String) -> Result<bool, String> {
-    if !Path::new(&path).is_dir() {
-        return Ok(false);
-    }
+async fn git_is_repository(path: String) -> Result<bool, String> {
+    git_task(move || {
+        if !Path::new(&path).is_dir() {
+            return Ok(false);
+        }
 
-    match run_git(&["rev-parse", "--is-inside-work-tree"], Some(&path)) {
-        Ok(output) => Ok(output.stdout.trim() == "true"),
-        Err(_) => Ok(false),
-    }
+        match run_git(&["rev-parse", "--is-inside-work-tree"], Some(&path)) {
+            Ok(output) => Ok(output.stdout.trim() == "true"),
+            Err(_) => Ok(false),
+        }
+    })
+    .await
 }
 
 /// Short status/branch/remote summary for a repository.
 #[tauri::command]
-fn git_status(path: String) -> Result<GitOutput, String> {
-    run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))
+async fn git_status(path: String) -> Result<GitOutput, String> {
+    git_task(move || run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))).await
 }
 
 /// Configured origin remote URL, when present.
 #[tauri::command]
-fn git_remote_url(path: String) -> Result<String, String> {
-    match run_git(&["remote", "get-url", "origin"], Some(&path)) {
+async fn git_remote_url(path: String) -> Result<String, String> {
+    git_task(move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
         Ok(output) => Ok(output.stdout.trim().to_string()),
         Err(_) => Ok(String::new()),
+    })
+    .await
+}
+
+/// True when `path` looks like a clone Atlas started but never finished.
+fn is_incomplete_clone(path: &Path) -> bool {
+    if path.join(".git").exists() {
+        return false;
+    }
+
+    match fs::read_dir(path) {
+        Ok(mut entries) => entries.next().is_none() || true,
+        Err(_) => false,
     }
 }
 
 /// Clones `url` into `destination`, optionally under `folder_name`.
 #[tauri::command]
-fn git_clone(url: String, destination: String, folder_name: Option<String>) -> Result<String, String> {
-    let root = Path::new(&destination);
+async fn git_clone(
+    url: String,
+    destination: String,
+    folder_name: Option<String>,
+) -> Result<String, String> {
+    git_task(move || {
+        let root = Path::new(&destination);
 
-    if !root.is_dir() {
-        return Err(format!("Destination is not a directory: {destination}"));
-    }
+        if !root.is_dir() {
+            return Err(format!("Destination is not a directory: {destination}"));
+        }
 
-    let name = folder_name
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| {
-            url.trim_end_matches('/')
-                .rsplit('/')
-                .next()
-                .unwrap_or("repository")
-                .trim_end_matches(".git")
-                .to_string()
-        });
+        let name = folder_name
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| {
+                url.trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or("repository")
+                    .trim_end_matches(".git")
+                    .to_string()
+            });
 
-    if name.contains('/') || name.contains('\\') || name == ".." {
-        return Err(format!("Invalid folder name: {name}"));
-    }
+        if name.contains('/') || name.contains('\\') || name == ".." {
+            return Err(format!("Invalid folder name: {name}"));
+        }
 
-    let target = root.join(&name);
+        let target = root.join(&name);
 
-    if target.exists() {
-        return Err(format!("Target folder already exists: {}", target.display()));
-    }
+        // Atlas never touches a folder that already existed.
+        if target.exists() {
+            return Err(format!("Target folder already exists: {}", target.display()));
+        }
 
-    let target_string = target.to_string_lossy().to_string();
+        let target_string = target.to_string_lossy().to_string();
 
-    run_git(&["clone", url.as_str(), target_string.as_str()], None)?;
+        match run_git(&["clone", url.as_str(), target_string.as_str()], None) {
+            Ok(_) => Ok(target_string.replace('\\', "/")),
+            Err(error) => {
+                // Git creates the target folder before it contacts the remote, so a
+                // failed or timed-out clone can leave an unusable directory behind.
+                // It was created by this call, so removing it is safe.
+                let mut message = error;
 
-    Ok(target_string.replace('\\', "/"))
+                if target.exists() && is_incomplete_clone(&target) {
+                    match fs::remove_dir_all(&target) {
+                        Ok(()) => {
+                            message.push_str("\n\nThe incomplete folder was removed.");
+                        }
+                        Err(remove_error) => {
+                            message.push_str(&format!(
+                                "\n\nAn incomplete folder remains at {} and could not be removed: {remove_error}",
+                                target.display()
+                            ));
+                        }
+                    }
+                }
+
+                Err(message)
+            }
+        }
+    })
+    .await
 }
 
 /// Pulls from the configured remote. Refuses to run when the working tree is dirty.
 #[tauri::command]
-fn git_pull(path: String) -> Result<String, String> {
-    let status = run_git(&["status", "--porcelain"], Some(&path))?;
+async fn git_pull(path: String) -> Result<String, String> {
+    git_task(move || {
+        let status = run_git(&["status", "--porcelain"], Some(&path))?;
 
-    if !status.stdout.trim().is_empty() {
-        return Err(
-            "This repository has uncommitted local changes. Commit or stash them before updating."
-                .to_string(),
-        );
-    }
+        if !status.stdout.trim().is_empty() {
+            return Err(
+                "This repository has uncommitted local changes. Commit or stash them before updating."
+                    .to_string(),
+            );
+        }
 
-    let output = run_git(&["pull", "--ff-only"], Some(&path))?;
+        let output = run_git(&["pull", "--ff-only"], Some(&path))?;
 
-    Ok(if output.stdout.trim().is_empty() {
-        output.stderr
-    } else {
-        output.stdout
+        Ok(if output.stdout.trim().is_empty() {
+            output.stderr
+        } else {
+            output.stdout
+        })
     })
+    .await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
