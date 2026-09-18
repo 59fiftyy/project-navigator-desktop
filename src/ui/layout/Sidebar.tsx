@@ -2,6 +2,7 @@ import {
   Compass,
   FileText,
   FolderTree,
+  GitBranch,
   LayoutDashboard,
   Map,
   NotebookPen,
@@ -12,13 +13,14 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/app/projectStore";
 import { Button } from "@/components/ui/button";
 
-export type SectionId = "dashboard" | "map" | "docs" | "roadmap" | "notes" | "settings";
+export type SectionId = "dashboard" | "map" | "docs" | "roadmap" | "git" | "notes" | "settings";
 
 const items: { id: SectionId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "map", label: "Project Map", icon: FolderTree },
   { id: "docs", label: "Documentation", icon: FileText },
   { id: "roadmap", label: "Roadmap", icon: Map },
+  { id: "git", label: "Git", icon: GitBranch },
   { id: "notes", label: "Notes", icon: NotebookPen },
   { id: "settings", label: "Settings", icon: Settings },
 ];

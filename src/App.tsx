@@ -9,6 +9,7 @@ import { Dashboard } from "@/ui/screens/Dashboard";
 import { ProjectMap } from "@/ui/screens/ProjectMap";
 import { DocumentationScreen } from "@/ui/screens/DocumentationScreen";
 import { RoadmapScreen } from "@/ui/screens/RoadmapScreen";
+import { GitScreen } from "@/ui/screens/GitScreen";
 import { NotesScreen } from "@/ui/screens/NotesScreen";
 import { SettingsScreen } from "@/ui/screens/SettingsScreen";
 import { Toaster } from "@/components/ui/sonner";
@@ -38,6 +39,7 @@ function Shell() {
         {section === "map" && <ProjectMap />}
         {section === "docs" && <DocumentationScreen />}
         {section === "roadmap" && <RoadmapScreen />}
+        {section === "git" && <GitScreen />}
         {section === "notes" && <NotesScreen />}
         {section === "settings" && <SettingsScreen />}
       </main>
