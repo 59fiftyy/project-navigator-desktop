@@ -45,7 +45,7 @@ Testing: right-click many different files and folders in sequence, including imm
 
 Root cause (confirmed in code): the tree is fully rendered, with no virtualization, and **each row wraps its own Radix `ContextMenu`** (`ProjectMap.tsx` `TreeNode`). A scan can reach 60,000 files, so the app can mount tens of thousands of Radix menu roots — each with its own state, context and event wiring. On top of that, `selected` is threaded through every node, so clicking one file re-renders the entire tree, and `visiblePaths` is a `Set` lookup per node per render. That is the main-thread cost during scroll, not CSS.
 
-Fix (React only, same visual design):
+Fix (React only, same visual design). No file is limited, hidden, truncated or dropped — the full Project Map stays available and functionally unchanged; only how rows are rendered changes:
 - Replace the recursive render with a **flattened visible-row list** computed in a `useMemo` (path, name, type, depth, expanded) and render it with virtualization so only on-screen rows exist in the DOM. Add `@tanstack/react-virtual` for this (small, standard, no design change).
 - Use **one single `ContextMenu` for the whole tree**: a container-level menu whose target is set on `onContextMenu` of a row. Removes tens of thousands of menu instances and also removes the teardown hazard behind issue C.
 - Move each folder's expanded state from per-node `useState` into one `Set<string>` in `ProjectMap`, so flattening is pure and rows can be memoized.
