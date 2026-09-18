@@ -126,22 +126,78 @@ pub struct GitOutput {
     pub stderr: String,
 }
 
+/// Safety net against hung Git processes (credential prompts, dead remotes).
+/// Generous on purpose — it is not meant to cut off legitimate long clones.
+/// Adjust here; every Git command shares this value.
+const GIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// How often the blocking task checks whether Git has finished.
+const GIT_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
+
+/// Spawns `git` with all interactive prompting disabled and waits for it with a
+/// timeout. Runs on a blocking worker thread — never on the Tauri main thread.
 fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
-    let mut command = std::process::Command::new("git");
-    command.args(args);
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+
+    let mut command = Command::new("git");
+
+    // Never let Git try to ask the user for anything: there is no terminal
+    // attached to the app, so a prompt would hang the operation forever.
+    command
+        .arg("-c")
+        .arg("credential.helper=")
+        .args(args)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_ASKPASS", "")
+        .env("SSH_ASKPASS", "")
+        .env("GCM_INTERACTIVE", "never")
+        .env("GIT_SSH_COMMAND", "ssh -oBatchMode=yes -oStrictHostKeyChecking=accept-new")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     if let Some(dir) = cwd {
         command.current_dir(dir);
     }
 
-    let output = command
-        .output()
+    let mut child = command
+        .spawn()
         .map_err(|error| format!("Failed to run git: {error}. Is Git installed?"))?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    let started = std::time::Instant::now();
 
-    if output.status.success() {
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {
+                if started.elapsed() >= GIT_TIMEOUT {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(
+                        "The Git operation timed out and was stopped. It may need credentials, or the remote is unreachable."
+                            .to_string(),
+                    );
+                }
+
+                std::thread::sleep(GIT_POLL_INTERVAL);
+            }
+            Err(error) => return Err(format!("Failed to wait for git: {error}")),
+        }
+    };
+
+    let mut stdout = String::new();
+    let mut stderr = String::new();
+
+    if let Some(mut pipe) = child.stdout.take() {
+        let _ = pipe.read_to_string(&mut stdout);
+    }
+
+    if let Some(mut pipe) = child.stderr.take() {
+        let _ = pipe.read_to_string(&mut stderr);
+    }
+
+    if status.success() {
         Ok(GitOutput { stdout, stderr })
     } else {
         Err(if stderr.trim().is_empty() {
@@ -152,91 +208,152 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
     }
 }
 
+/// Runs a Git operation on a blocking worker thread so the UI event loop keeps
+/// running while Git works.
+async fn git_task<T, F>(work: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|error| format!("Git task failed to run: {error}"))?
+}
+
 /// True when `path` is inside (or is) a Git working tree.
 #[tauri::command]
-fn git_is_repository(path: String) -> Result<bool, String> {
-    if !Path::new(&path).is_dir() {
-        return Ok(false);
-    }
+async fn git_is_repository(path: String) -> Result<bool, String> {
+    git_task(move || {
+        if !Path::new(&path).is_dir() {
+            return Ok(false);
+        }
 
-    match run_git(&["rev-parse", "--is-inside-work-tree"], Some(&path)) {
-        Ok(output) => Ok(output.stdout.trim() == "true"),
-        Err(_) => Ok(false),
-    }
+        match run_git(&["rev-parse", "--is-inside-work-tree"], Some(&path)) {
+            Ok(output) => Ok(output.stdout.trim() == "true"),
+            Err(_) => Ok(false),
+        }
+    })
+    .await
 }
 
 /// Short status/branch/remote summary for a repository.
 #[tauri::command]
-fn git_status(path: String) -> Result<GitOutput, String> {
-    run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))
+async fn git_status(path: String) -> Result<GitOutput, String> {
+    git_task(move || run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))).await
 }
 
 /// Configured origin remote URL, when present.
 #[tauri::command]
-fn git_remote_url(path: String) -> Result<String, String> {
-    match run_git(&["remote", "get-url", "origin"], Some(&path)) {
+async fn git_remote_url(path: String) -> Result<String, String> {
+    git_task(move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
         Ok(output) => Ok(output.stdout.trim().to_string()),
         Err(_) => Ok(String::new()),
+    })
+    .await
+}
+
+/// True when `path` looks like a clone Atlas started but never finished.
+fn is_incomplete_clone(path: &Path) -> bool {
+    if path.join(".git").exists() {
+        return false;
+    }
+
+    match fs::read_dir(path) {
+        Ok(mut entries) => entries.next().is_none() || true,
+        Err(_) => false,
     }
 }
 
 /// Clones `url` into `destination`, optionally under `folder_name`.
 #[tauri::command]
-fn git_clone(url: String, destination: String, folder_name: Option<String>) -> Result<String, String> {
-    let root = Path::new(&destination);
+async fn git_clone(
+    url: String,
+    destination: String,
+    folder_name: Option<String>,
+) -> Result<String, String> {
+    git_task(move || {
+        let root = Path::new(&destination);
 
-    if !root.is_dir() {
-        return Err(format!("Destination is not a directory: {destination}"));
-    }
+        if !root.is_dir() {
+            return Err(format!("Destination is not a directory: {destination}"));
+        }
 
-    let name = folder_name
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| {
-            url.trim_end_matches('/')
-                .rsplit('/')
-                .next()
-                .unwrap_or("repository")
-                .trim_end_matches(".git")
-                .to_string()
-        });
+        let name = folder_name
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| {
+                url.trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or("repository")
+                    .trim_end_matches(".git")
+                    .to_string()
+            });
 
-    if name.contains('/') || name.contains('\\') || name == ".." {
-        return Err(format!("Invalid folder name: {name}"));
-    }
+        if name.contains('/') || name.contains('\\') || name == ".." {
+            return Err(format!("Invalid folder name: {name}"));
+        }
 
-    let target = root.join(&name);
+        let target = root.join(&name);
 
-    if target.exists() {
-        return Err(format!("Target folder already exists: {}", target.display()));
-    }
+        // Atlas never touches a folder that already existed.
+        if target.exists() {
+            return Err(format!("Target folder already exists: {}", target.display()));
+        }
 
-    let target_string = target.to_string_lossy().to_string();
+        let target_string = target.to_string_lossy().to_string();
 
-    run_git(&["clone", url.as_str(), target_string.as_str()], None)?;
+        match run_git(&["clone", url.as_str(), target_string.as_str()], None) {
+            Ok(_) => Ok(target_string.replace('\\', "/")),
+            Err(error) => {
+                // Git creates the target folder before it contacts the remote, so a
+                // failed or timed-out clone can leave an unusable directory behind.
+                // It was created by this call, so removing it is safe.
+                let mut message = error;
 
-    Ok(target_string.replace('\\', "/"))
+                if target.exists() && is_incomplete_clone(&target) {
+                    match fs::remove_dir_all(&target) {
+                        Ok(()) => {
+                            message.push_str("\n\nThe incomplete folder was removed.");
+                        }
+                        Err(remove_error) => {
+                            message.push_str(&format!(
+                                "\n\nAn incomplete folder remains at {} and could not be removed: {remove_error}",
+                                target.display()
+                            ));
+                        }
+                    }
+                }
+
+                Err(message)
+            }
+        }
+    })
+    .await
 }
 
 /// Pulls from the configured remote. Refuses to run when the working tree is dirty.
 #[tauri::command]
-fn git_pull(path: String) -> Result<String, String> {
-    let status = run_git(&["status", "--porcelain"], Some(&path))?;
+async fn git_pull(path: String) -> Result<String, String> {
+    git_task(move || {
+        let status = run_git(&["status", "--porcelain"], Some(&path))?;
 
-    if !status.stdout.trim().is_empty() {
-        return Err(
-            "This repository has uncommitted local changes. Commit or stash them before updating."
-                .to_string(),
-        );
-    }
+        if !status.stdout.trim().is_empty() {
+            return Err(
+                "This repository has uncommitted local changes. Commit or stash them before updating."
+                    .to_string(),
+            );
+        }
 
-    let output = run_git(&["pull", "--ff-only"], Some(&path))?;
+        let output = run_git(&["pull", "--ff-only"], Some(&path))?;
 
-    Ok(if output.stdout.trim().is_empty() {
-        output.stderr
-    } else {
-        output.stdout
+        Ok(if output.stdout.trim().is_empty() {
+            output.stderr
+        } else {
+            output.stdout
+        })
     })
+    .await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
