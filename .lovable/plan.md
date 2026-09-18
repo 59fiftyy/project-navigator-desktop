@@ -13,7 +13,7 @@ Why the empty folder remains: `git clone` creates the destination directory firs
 Fix (Rust + React):
 - Convert all Git commands to `async fn` and run the blocking process work inside `tauri::async_runtime::spawn_blocking`, so the event loop stays free. Keep `run_git` as the single shared helper — no parallel Git layer.
 - Harden the spawned environment in `run_git`: `GIT_TERMINAL_PROMPT=0`, `GIT_ASKPASS=""`, `SSH_ASKPASS=""`, `GCM_INTERACTIVE=never`, and `-c credential.helper=` for clone, so authentication failures return an error instead of hanging.
-- Add a wall-clock timeout for clone/pull (default around 5 minutes): spawn with `.spawn()`, poll `try_wait()` in the blocking task, kill the child on timeout and return a clear "operation timed out" error.
+- Add a wall-clock timeout for clone/pull purely as a safety net against hangs, credential prompts and stuck Git processes — not a limit on legitimate long clones. Spawn with `.spawn()`, poll `try_wait()` in the blocking task, kill the child on timeout and return a clear "operation timed out" error. The value lives in one named constant (starting generous, around 5 minutes) so it is trivial to adjust later.
 - Partial-state handling: `git_clone` records whether the target directory existed before it ran. On failure or timeout, if Atlas created it and it contains no `.git` (or is empty), remove it and say so in the error message. Never delete a pre-existing directory.
 - Frontend: `GitScreen` keeps its current layout; it gains a visible "Cloning…" indicator that cannot be double-submitted (already guarded) and surfaces the timeout/cleanup message in the existing error block. Optional small addition consistent with the current design: a Cancel button that simply stops waiting on the promise is *not* planned, since the backend timeout covers the hang.
 
@@ -45,7 +45,7 @@ Testing: right-click many different files and folders in sequence, including imm
 
 Root cause (confirmed in code): the tree is fully rendered, with no virtualization, and **each row wraps its own Radix `ContextMenu`** (`ProjectMap.tsx` `TreeNode`). A scan can reach 60,000 files, so the app can mount tens of thousands of Radix menu roots — each with its own state, context and event wiring. On top of that, `selected` is threaded through every node, so clicking one file re-renders the entire tree, and `visiblePaths` is a `Set` lookup per node per render. That is the main-thread cost during scroll, not CSS.
 
-Fix (React only, same visual design):
+Fix (React only, same visual design). No file is limited, hidden, truncated or dropped — the full Project Map stays available and functionally unchanged; only how rows are rendered changes:
 - Replace the recursive render with a **flattened visible-row list** computed in a `useMemo` (path, name, type, depth, expanded) and render it with virtualization so only on-screen rows exist in the DOM. Add `@tanstack/react-virtual` for this (small, standard, no design change).
 - Use **one single `ContextMenu` for the whole tree**: a container-level menu whose target is set on `onContextMenu` of a row. Removes tens of thousands of menu instances and also removes the teardown hazard behind issue C.
 - Move each folder's expanded state from per-node `useState` into one `Set<string>` in `ProjectMap`, so flattening is pure and rows can be memoized.
