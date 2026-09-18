@@ -126,22 +126,78 @@ pub struct GitOutput {
     pub stderr: String,
 }
 
+/// Safety net against hung Git processes (credential prompts, dead remotes).
+/// Generous on purpose — it is not meant to cut off legitimate long clones.
+/// Adjust here; every Git command shares this value.
+const GIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// How often the blocking task checks whether Git has finished.
+const GIT_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
+
+/// Spawns `git` with all interactive prompting disabled and waits for it with a
+/// timeout. Runs on a blocking worker thread — never on the Tauri main thread.
 fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
-    let mut command = std::process::Command::new("git");
-    command.args(args);
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+
+    let mut command = Command::new("git");
+
+    // Never let Git try to ask the user for anything: there is no terminal
+    // attached to the app, so a prompt would hang the operation forever.
+    command
+        .arg("-c")
+        .arg("credential.helper=")
+        .args(args)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_ASKPASS", "")
+        .env("SSH_ASKPASS", "")
+        .env("GCM_INTERACTIVE", "never")
+        .env("GIT_SSH_COMMAND", "ssh -oBatchMode=yes -oStrictHostKeyChecking=accept-new")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     if let Some(dir) = cwd {
         command.current_dir(dir);
     }
 
-    let output = command
-        .output()
+    let mut child = command
+        .spawn()
         .map_err(|error| format!("Failed to run git: {error}. Is Git installed?"))?;
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    let started = std::time::Instant::now();
 
-    if output.status.success() {
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {
+                if started.elapsed() >= GIT_TIMEOUT {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(
+                        "The Git operation timed out and was stopped. It may need credentials, or the remote is unreachable."
+                            .to_string(),
+                    );
+                }
+
+                std::thread::sleep(GIT_POLL_INTERVAL);
+            }
+            Err(error) => return Err(format!("Failed to wait for git: {error}")),
+        }
+    };
+
+    let mut stdout = String::new();
+    let mut stderr = String::new();
+
+    if let Some(mut pipe) = child.stdout.take() {
+        let _ = pipe.read_to_string(&mut stdout);
+    }
+
+    if let Some(mut pipe) = child.stderr.take() {
+        let _ = pipe.read_to_string(&mut stderr);
+    }
+
+    if status.success() {
         Ok(GitOutput { stdout, stderr })
     } else {
         Err(if stderr.trim().is_empty() {
@@ -150,6 +206,18 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
             stderr
         })
     }
+}
+
+/// Runs a Git operation on a blocking worker thread so the UI event loop keeps
+/// running while Git works.
+async fn git_task<T, F>(work: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|error| format!("Git task failed to run: {error}"))?
 }
 
 /// True when `path` is inside (or is) a Git working tree.
