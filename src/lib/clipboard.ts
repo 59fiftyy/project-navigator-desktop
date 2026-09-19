@@ -1,14 +1,17 @@
 /**
  * Single clipboard implementation used across Atlas.
  *
- * Inside the Tauri webview the DOM clipboard APIs are unreliable, so the
- * native clipboard plugin is tried first and the browser paths act as
- * fallbacks. Always reports whether the copy actually succeeded.
+ * On the desktop the native clipboard plugin is used and is imported statically:
+ * loading a lazy chunk while a context menu is tearing down was a source of
+ * intermittent webview crashes. The DOM paths exist only for the browser
+ * preview. Always reports whether the copy actually succeeded.
  */
+import { writeText as writeNativeText } from "@tauri-apps/plugin-clipboard-manager";
+
 import { isDesktopRuntime } from "@/platform/runtime";
 
 export async function copyText(value: string): Promise<boolean> {
-  const text = value ?? "";
+  const text = typeof value === "string" ? value : "";
 
   if (!text) {
     return false;
@@ -16,11 +19,10 @@ export async function copyText(value: string): Promise<boolean> {
 
   if (isDesktopRuntime()) {
     try {
-      const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
-      await writeText(text);
+      await writeNativeText(text);
       return true;
     } catch {
-      // fall through to the web paths below
+      return false;
     }
   }
 
@@ -36,6 +38,7 @@ export async function copyText(value: string): Promise<boolean> {
   return copyWithTextarea(text);
 }
 
+/** Browser-preview only fallback for contexts without the async clipboard API. */
 function copyWithTextarea(text: string): boolean {
   if (typeof document === "undefined") {
     return false;
