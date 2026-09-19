@@ -96,34 +96,40 @@ fn scan_directory_blocking(path: String) -> Result<Vec<String>, String> {
     Ok(files)
 }
 
-/// Reads a UTF-8 text file from disk.
+/// Reads a UTF-8 text file from disk, off the main thread.
 #[tauri::command]
-fn read_file(path: String) -> Result<String, String> {
-    let file_path = Path::new(&path);
+async fn read_file(path: String) -> Result<String, String> {
+    blocking_task(move || {
+        let file_path = Path::new(&path);
 
-    let metadata = fs::metadata(file_path).map_err(|error| format!("{path}: {error}"))?;
+        let metadata = fs::metadata(file_path).map_err(|error| format!("{path}: {error}"))?;
 
-    if !metadata.is_file() {
-        return Err(format!("Not a file: {path}"));
-    }
+        if !metadata.is_file() {
+            return Err(format!("Not a file: {path}"));
+        }
 
-    if metadata.len() > MAX_FILE_BYTES {
-        return Err(format!("File too large to read: {path}"));
-    }
+        if metadata.len() > MAX_FILE_BYTES {
+            return Err(format!("File too large to read: {path}"));
+        }
 
-    fs::read_to_string(file_path).map_err(|error| format!("{path}: {error}"))
+        fs::read_to_string(file_path).map_err(|error| format!("{path}: {error}"))
+    })
+    .await
 }
 
 /// Writes a UTF-8 text file to disk, creating parent directories when needed.
 #[tauri::command]
-fn write_file(path: String, content: String) -> Result<(), String> {
-    let file_path = Path::new(&path);
+async fn write_file(path: String, content: String) -> Result<(), String> {
+    blocking_task(move || {
+        let file_path = Path::new(&path);
 
-    if let Some(parent) = file_path.parent() {
-        fs::create_dir_all(parent).map_err(|error| format!("{path}: {error}"))?;
-    }
+        if let Some(parent) = file_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| format!("{path}: {error}"))?;
+        }
 
-    fs::write(file_path, content).map_err(|error| format!("{path}: {error}"))
+        fs::write(file_path, content).map_err(|error| format!("{path}: {error}"))
+    })
+    .await
 }
 
 /// Result of a Git command execution.
