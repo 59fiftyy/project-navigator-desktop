@@ -251,7 +251,7 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
 
 /// Runs a Git operation on a blocking worker thread so the UI event loop keeps
 /// running while Git works.
-async fn git_task<T, F>(work: F) -> Result<T, String>
+async fn blocking_task<T, F>(work: F) -> Result<T, String>
 where
     T: Send + 'static,
     F: FnOnce() -> Result<T, String> + Send + 'static,
@@ -264,7 +264,7 @@ where
 /// True when `path` is inside (or is) a Git working tree.
 #[tauri::command]
 async fn git_is_repository(path: String) -> Result<bool, String> {
-    git_task(move || {
+    blocking_task(move || {
         if !Path::new(&path).is_dir() {
             return Ok(false);
         }
@@ -280,13 +280,13 @@ async fn git_is_repository(path: String) -> Result<bool, String> {
 /// Short status/branch/remote summary for a repository.
 #[tauri::command]
 async fn git_status(path: String) -> Result<GitOutput, String> {
-    git_task(move || run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))).await
+    blocking_task(move || run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))).await
 }
 
 /// Configured origin remote URL, when present.
 #[tauri::command]
 async fn git_remote_url(path: String) -> Result<String, String> {
-    git_task(move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
+    blocking_task(move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
         Ok(output) => Ok(output.stdout.trim().to_string()),
         Err(_) => Ok(String::new()),
     })
@@ -309,7 +309,7 @@ async fn git_clone(
     destination: String,
     folder_name: Option<String>,
 ) -> Result<String, String> {
-    git_task(move || {
+    blocking_task(move || {
         let root = Path::new(&destination);
 
         if !root.is_dir() {
@@ -373,7 +373,7 @@ async fn git_clone(
 /// Pulls from the configured remote. Refuses to run when the working tree is dirty.
 #[tauri::command]
 async fn git_pull(path: String) -> Result<String, String> {
-    git_task(move || {
+    blocking_task(move || {
         let status = run_git(&["status", "--porcelain"], Some(&path))?;
 
         if !status.stdout.trim().is_empty() {
