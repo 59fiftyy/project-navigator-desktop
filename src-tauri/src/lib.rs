@@ -170,7 +170,32 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
         .spawn()
         .map_err(|error| format!("Failed to run git: {error}. Is Git installed?"))?;
 
+    // Drain both pipes concurrently so Git can never block on a full buffer.
+    let mut stdout_pipe = child.stdout.take();
+    let mut stderr_pipe = child.stderr.take();
+
+    let stdout_reader = std::thread::spawn(move || {
+        let mut buffer = Vec::new();
+
+        if let Some(pipe) = stdout_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buffer);
+        }
+
+        String::from_utf8_lossy(&buffer).to_string()
+    });
+
+    let stderr_reader = std::thread::spawn(move || {
+        let mut buffer = Vec::new();
+
+        if let Some(pipe) = stderr_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buffer);
+        }
+
+        String::from_utf8_lossy(&buffer).to_string()
+    });
+
     let started = std::time::Instant::now();
+    let mut timed_out = false;
 
     let status = loop {
         match child.try_wait() {
@@ -178,11 +203,8 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
             Ok(None) => {
                 if started.elapsed() >= GIT_TIMEOUT {
                     let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(
-                        "The Git operation timed out and was stopped. It may need credentials, or the remote is unreachable."
-                            .to_string(),
-                    );
+                    timed_out = true;
+                    break child.wait().map_err(|error| format!("Failed to wait for git: {error}"))?;
                 }
 
                 std::thread::sleep(GIT_POLL_INTERVAL);
@@ -191,15 +213,16 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
         }
     };
 
-    let mut stdout = String::new();
-    let mut stderr = String::new();
+    // The readers finish as soon as the pipes close, which happens when the
+    // child exits or is killed.
+    let stdout = stdout_reader.join().unwrap_or_default();
+    let stderr = stderr_reader.join().unwrap_or_default();
 
-    if let Some(mut pipe) = child.stdout.take() {
-        let _ = pipe.read_to_string(&mut stdout);
-    }
-
-    if let Some(mut pipe) = child.stderr.take() {
-        let _ = pipe.read_to_string(&mut stderr);
+    if timed_out {
+        return Err(
+            "The Git operation timed out and was stopped. It may need credentials, or the remote is unreachable."
+                .to_string(),
+        );
     }
 
     if status.success() {
