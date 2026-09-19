@@ -136,6 +136,11 @@ const GIT_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(
 
 /// Spawns `git` with all interactive prompting disabled and waits for it with a
 /// timeout. Runs on a blocking worker thread — never on the Tauri main thread.
+///
+/// stdout and stderr are drained by dedicated threads *while* Git runs. Draining
+/// only after exit deadlocks: `git clone` writes progress to stderr, fills the
+/// OS pipe buffer, and then blocks forever waiting for a reader that never comes
+/// until it exits — which it never does.
 fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
     use std::io::Read;
     use std::process::{Command, Stdio};
