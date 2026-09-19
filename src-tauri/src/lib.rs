@@ -37,8 +37,15 @@ fn is_ignored(name: &str) -> bool {
 
 /// Recursively lists every file under `path`, using forward slashes so the
 /// engine's path handling stays platform-independent.
+///
+/// Runs on a blocking worker thread: walking a large project takes seconds and
+/// would otherwise stall the window's event loop.
 #[tauri::command]
-fn scan_directory(path: String) -> Result<Vec<String>, String> {
+async fn scan_directory(path: String) -> Result<Vec<String>, String> {
+    blocking_task(move || scan_directory_blocking(path)).await
+}
+
+fn scan_directory_blocking(path: String) -> Result<Vec<String>, String> {
     let root = Path::new(&path);
 
     if !root.exists() {
