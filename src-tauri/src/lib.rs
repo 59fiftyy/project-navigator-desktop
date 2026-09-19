@@ -281,15 +281,12 @@ async fn git_remote_url(path: String) -> Result<String, String> {
 }
 
 /// True when `path` looks like a clone Atlas started but never finished.
+///
+/// A usable clone always has a `.git` entry, so its absence means the clone
+/// never got far enough to be a repository. The caller only ever passes a
+/// directory that this same clone call created.
 fn is_incomplete_clone(path: &Path) -> bool {
-    if path.join(".git").exists() {
-        return false;
-    }
-
-    match fs::read_dir(path) {
-        Ok(mut entries) => entries.next().is_none() || true,
-        Err(_) => false,
-    }
+    !path.join(".git").exists()
 }
 
 /// Clones `url` into `destination`, optionally under `folder_name`.
