@@ -37,8 +37,15 @@ fn is_ignored(name: &str) -> bool {
 
 /// Recursively lists every file under `path`, using forward slashes so the
 /// engine's path handling stays platform-independent.
+///
+/// Runs on a blocking worker thread: walking a large project takes seconds and
+/// would otherwise stall the window's event loop.
 #[tauri::command]
-fn scan_directory(path: String) -> Result<Vec<String>, String> {
+async fn scan_directory(path: String) -> Result<Vec<String>, String> {
+    blocking_task(move || scan_directory_blocking(path)).await
+}
+
+fn scan_directory_blocking(path: String) -> Result<Vec<String>, String> {
     let root = Path::new(&path);
 
     if !root.exists() {
@@ -89,34 +96,40 @@ fn scan_directory(path: String) -> Result<Vec<String>, String> {
     Ok(files)
 }
 
-/// Reads a UTF-8 text file from disk.
+/// Reads a UTF-8 text file from disk, off the main thread.
 #[tauri::command]
-fn read_file(path: String) -> Result<String, String> {
-    let file_path = Path::new(&path);
+async fn read_file(path: String) -> Result<String, String> {
+    blocking_task(move || {
+        let file_path = Path::new(&path);
 
-    let metadata = fs::metadata(file_path).map_err(|error| format!("{path}: {error}"))?;
+        let metadata = fs::metadata(file_path).map_err(|error| format!("{path}: {error}"))?;
 
-    if !metadata.is_file() {
-        return Err(format!("Not a file: {path}"));
-    }
+        if !metadata.is_file() {
+            return Err(format!("Not a file: {path}"));
+        }
 
-    if metadata.len() > MAX_FILE_BYTES {
-        return Err(format!("File too large to read: {path}"));
-    }
+        if metadata.len() > MAX_FILE_BYTES {
+            return Err(format!("File too large to read: {path}"));
+        }
 
-    fs::read_to_string(file_path).map_err(|error| format!("{path}: {error}"))
+        fs::read_to_string(file_path).map_err(|error| format!("{path}: {error}"))
+    })
+    .await
 }
 
 /// Writes a UTF-8 text file to disk, creating parent directories when needed.
 #[tauri::command]
-fn write_file(path: String, content: String) -> Result<(), String> {
-    let file_path = Path::new(&path);
+async fn write_file(path: String, content: String) -> Result<(), String> {
+    blocking_task(move || {
+        let file_path = Path::new(&path);
 
-    if let Some(parent) = file_path.parent() {
-        fs::create_dir_all(parent).map_err(|error| format!("{path}: {error}"))?;
-    }
+        if let Some(parent) = file_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| format!("{path}: {error}"))?;
+        }
 
-    fs::write(file_path, content).map_err(|error| format!("{path}: {error}"))
+        fs::write(file_path, content).map_err(|error| format!("{path}: {error}"))
+    })
+    .await
 }
 
 /// Result of a Git command execution.
@@ -136,6 +149,11 @@ const GIT_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(
 
 /// Spawns `git` with all interactive prompting disabled and waits for it with a
 /// timeout. Runs on a blocking worker thread — never on the Tauri main thread.
+///
+/// stdout and stderr are drained by dedicated threads *while* Git runs. Draining
+/// only after exit deadlocks: `git clone` writes progress to stderr, fills the
+/// OS pipe buffer, and then blocks forever waiting for a reader that never comes
+/// until it exits — which it never does.
 fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
     use std::io::Read;
     use std::process::{Command, Stdio};
@@ -165,7 +183,32 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
         .spawn()
         .map_err(|error| format!("Failed to run git: {error}. Is Git installed?"))?;
 
+    // Drain both pipes concurrently so Git can never block on a full buffer.
+    let mut stdout_pipe = child.stdout.take();
+    let mut stderr_pipe = child.stderr.take();
+
+    let stdout_reader = std::thread::spawn(move || {
+        let mut buffer = Vec::new();
+
+        if let Some(pipe) = stdout_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buffer);
+        }
+
+        String::from_utf8_lossy(&buffer).to_string()
+    });
+
+    let stderr_reader = std::thread::spawn(move || {
+        let mut buffer = Vec::new();
+
+        if let Some(pipe) = stderr_pipe.as_mut() {
+            let _ = pipe.read_to_end(&mut buffer);
+        }
+
+        String::from_utf8_lossy(&buffer).to_string()
+    });
+
     let started = std::time::Instant::now();
+    let mut timed_out = false;
 
     let status = loop {
         match child.try_wait() {
@@ -173,11 +216,8 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
             Ok(None) => {
                 if started.elapsed() >= GIT_TIMEOUT {
                     let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(
-                        "The Git operation timed out and was stopped. It may need credentials, or the remote is unreachable."
-                            .to_string(),
-                    );
+                    timed_out = true;
+                    break child.wait().map_err(|error| format!("Failed to wait for git: {error}"))?;
                 }
 
                 std::thread::sleep(GIT_POLL_INTERVAL);
@@ -186,15 +226,16 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
         }
     };
 
-    let mut stdout = String::new();
-    let mut stderr = String::new();
+    // The readers finish as soon as the pipes close, which happens when the
+    // child exits or is killed.
+    let stdout = stdout_reader.join().unwrap_or_default();
+    let stderr = stderr_reader.join().unwrap_or_default();
 
-    if let Some(mut pipe) = child.stdout.take() {
-        let _ = pipe.read_to_string(&mut stdout);
-    }
-
-    if let Some(mut pipe) = child.stderr.take() {
-        let _ = pipe.read_to_string(&mut stderr);
+    if timed_out {
+        return Err(
+            "The Git operation timed out and was stopped. It may need credentials, or the remote is unreachable."
+                .to_string(),
+        );
     }
 
     if status.success() {
@@ -210,7 +251,7 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
 
 /// Runs a Git operation on a blocking worker thread so the UI event loop keeps
 /// running while Git works.
-async fn git_task<T, F>(work: F) -> Result<T, String>
+async fn blocking_task<T, F>(work: F) -> Result<T, String>
 where
     T: Send + 'static,
     F: FnOnce() -> Result<T, String> + Send + 'static,
@@ -223,7 +264,7 @@ where
 /// True when `path` is inside (or is) a Git working tree.
 #[tauri::command]
 async fn git_is_repository(path: String) -> Result<bool, String> {
-    git_task(move || {
+    blocking_task(move || {
         if !Path::new(&path).is_dir() {
             return Ok(false);
         }
@@ -239,13 +280,13 @@ async fn git_is_repository(path: String) -> Result<bool, String> {
 /// Short status/branch/remote summary for a repository.
 #[tauri::command]
 async fn git_status(path: String) -> Result<GitOutput, String> {
-    git_task(move || run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))).await
+    blocking_task(move || run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))).await
 }
 
 /// Configured origin remote URL, when present.
 #[tauri::command]
 async fn git_remote_url(path: String) -> Result<String, String> {
-    git_task(move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
+    blocking_task(move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
         Ok(output) => Ok(output.stdout.trim().to_string()),
         Err(_) => Ok(String::new()),
     })
@@ -253,15 +294,12 @@ async fn git_remote_url(path: String) -> Result<String, String> {
 }
 
 /// True when `path` looks like a clone Atlas started but never finished.
+///
+/// A usable clone always has a `.git` entry, so its absence means the clone
+/// never got far enough to be a repository. The caller only ever passes a
+/// directory that this same clone call created.
 fn is_incomplete_clone(path: &Path) -> bool {
-    if path.join(".git").exists() {
-        return false;
-    }
-
-    match fs::read_dir(path) {
-        Ok(mut entries) => entries.next().is_none() || true,
-        Err(_) => false,
-    }
+    !path.join(".git").exists()
 }
 
 /// Clones `url` into `destination`, optionally under `folder_name`.
@@ -271,7 +309,7 @@ async fn git_clone(
     destination: String,
     folder_name: Option<String>,
 ) -> Result<String, String> {
-    git_task(move || {
+    blocking_task(move || {
         let root = Path::new(&destination);
 
         if !root.is_dir() {
@@ -335,7 +373,7 @@ async fn git_clone(
 /// Pulls from the configured remote. Refuses to run when the working tree is dirty.
 #[tauri::command]
 async fn git_pull(path: String) -> Result<String, String> {
-    git_task(move || {
+    blocking_task(move || {
         let status = run_git(&["status", "--porcelain"], Some(&path))?;
 
         if !status.stdout.trim().is_empty() {
