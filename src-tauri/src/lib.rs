@@ -170,7 +170,10 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
         .env("GIT_ASKPASS", "")
         .env("SSH_ASKPASS", "")
         .env("GCM_INTERACTIVE", "never")
-        .env("GIT_SSH_COMMAND", "ssh -oBatchMode=yes -oStrictHostKeyChecking=accept-new")
+        .env(
+            "GIT_SSH_COMMAND",
+            "ssh -oBatchMode=yes -oStrictHostKeyChecking=accept-new",
+        )
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -217,7 +220,9 @@ fn run_git(args: &[&str], cwd: Option<&str>) -> Result<GitOutput, String> {
                 if started.elapsed() >= GIT_TIMEOUT {
                     let _ = child.kill();
                     timed_out = true;
-                    break child.wait().map_err(|error| format!("Failed to wait for git: {error}"))?;
+                    break child
+                        .wait()
+                        .map_err(|error| format!("Failed to wait for git: {error}"))?;
                 }
 
                 std::thread::sleep(GIT_POLL_INTERVAL);
@@ -286,10 +291,12 @@ async fn git_status(path: String) -> Result<GitOutput, String> {
 /// Configured origin remote URL, when present.
 #[tauri::command]
 async fn git_remote_url(path: String) -> Result<String, String> {
-    blocking_task(move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
-        Ok(output) => Ok(output.stdout.trim().to_string()),
-        Err(_) => Ok(String::new()),
-    })
+    blocking_task(
+        move || match run_git(&["remote", "get-url", "origin"], Some(&path)) {
+            Ok(output) => Ok(output.stdout.trim().to_string()),
+            Err(_) => Ok(String::new()),
+        },
+    )
     .await
 }
 
