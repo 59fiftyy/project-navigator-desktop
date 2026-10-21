@@ -420,3 +420,118 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running Atlas");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Instant;
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("atlas-test-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn sh(cwd: &Path, args: &[&str]) {
+        let status = std::process::Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .unwrap();
+        assert!(status.status.success(), "{:?}", status);
+    }
+
+    fn make_repo(dir: &Path) {
+        sh(dir, &["init", "-q", "-b", "main"]);
+        fs::write(dir.join("a.txt"), "x".repeat(400_000)).unwrap();
+        sh(dir, &["add", "."]);
+        sh(dir, &["commit", "-q", "-m", "init"]);
+    }
+
+    #[test]
+    fn large_output_does_not_deadlock() {
+        let dir = temp_dir("large");
+        make_repo(&dir);
+        let started = Instant::now();
+        let out = run_git(&["show", "HEAD"], Some(dir.to_str().unwrap())).unwrap();
+        assert!(out.stdout.len() > 400_000);
+        assert!(started.elapsed().as_secs() < 10);
+    }
+
+    #[test]
+    fn clone_and_pull_flow() {
+        let base = temp_dir("flow");
+        let origin = base.join("origin");
+        fs::create_dir_all(&origin).unwrap();
+        make_repo(&origin);
+        let dest = base.join("dest");
+        fs::create_dir_all(&dest).unwrap();
+
+        let cloned = tauri::async_runtime::block_on(git_clone(
+            origin.to_string_lossy().to_string(),
+            dest.to_string_lossy().to_string(),
+            Some("copy".into()),
+        ))
+        .unwrap();
+        assert!(Path::new(&cloned).join(".git").exists());
+
+        // Existing target is refused and left untouched.
+        let again = tauri::async_runtime::block_on(git_clone(
+            origin.to_string_lossy().to_string(),
+            dest.to_string_lossy().to_string(),
+            Some("copy".into()),
+        ));
+        assert!(again.is_err());
+        assert!(Path::new(&cloned).join("a.txt").exists());
+
+        // Remote moves ahead; pull fast-forwards.
+        fs::write(origin.join("b.txt"), "new").unwrap();
+        sh(&origin, &["add", "."]);
+        sh(&origin, &["commit", "-q", "-m", "second"]);
+        tauri::async_runtime::block_on(git_pull(cloned.clone())).unwrap();
+        assert!(Path::new(&cloned).join("b.txt").exists());
+
+        // Dirty tree: refuse to pull.
+        fs::write(Path::new(&cloned).join("a.txt"), "local edit").unwrap();
+        let dirty = tauri::async_runtime::block_on(git_pull(cloned.clone()));
+        assert!(dirty.unwrap_err().contains("uncommitted"));
+        assert_eq!(fs::read_to_string(Path::new(&cloned).join("a.txt")).unwrap(), "local edit");
+    }
+
+    #[test]
+    fn failed_clone_removes_its_folder() {
+        let dest = temp_dir("fail");
+        let result = tauri::async_runtime::block_on(git_clone(
+            dest.join("missing-repo").to_string_lossy().to_string(),
+            dest.to_string_lossy().to_string(),
+            Some("broken".into()),
+        ));
+        assert!(result.is_err());
+        assert!(!dest.join("broken").exists());
+    }
+
+    #[test]
+    fn private_https_repo_fails_fast_without_prompting() {
+        let dest = temp_dir("private");
+        let started = Instant::now();
+        let result = tauri::async_runtime::block_on(git_clone(
+            "https://github.com/atlas-nonexistent-org-xyz/private-repo-xyz.git".into(),
+            dest.to_string_lossy().to_string(),
+            None,
+        ));
+        assert!(result.is_err());
+        assert!(started.elapsed().as_secs() < 60);
+        assert!(!dest.join("private-repo-xyz").exists());
+    }
+
+    #[test]
+    fn incomplete_clone_detection() {
+        let dir = temp_dir("incomplete");
+        fs::write(dir.join("file"), "x").unwrap();
+        assert!(is_incomplete_clone(&dir));
+        fs::create_dir_all(dir.join(".git")).unwrap();
+        assert!(!is_incomplete_clone(&dir));
+    }
+}
