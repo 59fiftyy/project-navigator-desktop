@@ -31,7 +31,8 @@ export async function refreshProjectDocumentation(
   fs: ProjectFileSystem,
   writtenPath?: string,
 ): Promise<ProjectContext> {
-  const isNewFile = writtenPath != null && !context.project.files.some((f) => f.path === writtenPath);
+  const isNewFile =
+    writtenPath != null && !context.project.files.some((f) => f.path === writtenPath);
 
   const files = isNewFile
     ? [...context.project.files, fileEntry(writtenPath)]
@@ -48,7 +49,9 @@ export async function refreshProjectDocumentation(
       }
     : context.project;
 
-  const classifiedFiles = isNewFile ? classifyFiles(project.files) : context.analysis.classifiedFiles;
+  const classifiedFiles = isNewFile
+    ? classifyFiles(project.files)
+    : context.analysis.classifiedFiles;
   const analysis = isNewFile ? analyzeProject(project, classifiedFiles) : context.analysis;
 
   const knowledge = await buildProjectKnowledge(project, classifiedFiles, fs);

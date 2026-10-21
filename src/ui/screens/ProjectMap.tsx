@@ -337,9 +337,7 @@ export function ProjectMap() {
                           node={row.node}
                           depth={row.depth}
                           isSelected={selected?.path === row.node.path}
-                          isExpanded={
-                            normalizedQuery.length > 0 || expanded.has(row.node.path)
-                          }
+                          isExpanded={normalizedQuery.length > 0 || expanded.has(row.node.path)}
                           onActivate={activate}
                           onContextTarget={setContextTarget}
                         />
