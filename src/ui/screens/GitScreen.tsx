@@ -16,9 +16,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 function message(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string") return error;
-  return "Unexpected Git error.";
+  const raw =
+    error instanceof Error ? error.message : typeof error === "string" ? error : "";
+
+  if (!raw) {
+    return "Unexpected Git error.";
+  }
+
+  const lower = raw.toLowerCase();
+
+  // Translate the most common Git failures into a plain explanation, keeping
+  // the original output below for anyone who wants the raw detail.
+  const friendly = (() => {
+    if (
+      lower.includes("could not read username") ||
+      lower.includes("could not read password") ||
+      lower.includes("authentication failed") ||
+      lower.includes("permission denied (publickey)") ||
+      lower.includes("terminal prompts disabled") ||
+      lower.includes("invalid username or password")
+    ) {
+      return "Authentication failed — the repository is private or requires credentials. Use a public repository, an SSH key, or a personal access token.";
+    }
+
+    if (
+      lower.includes("repository not found") ||
+      lower.includes("does not appear to be a git repository")
+    ) {
+      return "Repository not found — check the URL and that your account has access to it.";
+    }
+
+    if (
+      lower.includes("could not resolve host") ||
+      lower.includes("connection timed out") ||
+      lower.includes("network is unreachable") ||
+      lower.includes("connection refused") ||
+      lower.includes("unable to access")
+    ) {
+      return "Network problem — the remote server could not be reached. Check your internet connection and the repository URL.";
+    }
+
+    if (lower.includes("timed out")) {
+      return raw;
+    }
+
+    return null;
+  })();
+
+  return friendly ? `${friendly}\n\n${raw}` : raw;
 }
 
 export function GitScreen() {
