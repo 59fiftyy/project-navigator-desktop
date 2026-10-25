@@ -1,10 +1,19 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, File, Folder, Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  File,
+  Folder,
+  FolderOpen,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { useProject } from "@/app/projectStore";
 import { relativePath } from "@/app/projectInsights";
+import { openPath, revealInFileManager } from "@/platform/desktopService";
 import type { ClassifiedFile, ProjectNode } from "@/engine";
 import { ScreenHeader, EmptyHint } from "@/ui/layout/ScreenHeader";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +21,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
