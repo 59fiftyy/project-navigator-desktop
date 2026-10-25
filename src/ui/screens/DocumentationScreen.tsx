@@ -108,7 +108,7 @@ export function DocumentationScreen() {
               <button
                 key={document.section.id}
                 type="button"
-                onClick={() => setActiveId(document.section.id)}
+                onClick={() => selectDocument(document.section.id)}
                 className={cn(
                   "rounded-md px-3 py-2 text-left text-sm transition-colors",
                   isActive
@@ -133,9 +133,17 @@ export function DocumentationScreen() {
         </nav>
 
         <section className="flex min-h-0 flex-col gap-3 p-6">
-          <p className="break-all font-mono text-[11px] text-muted-foreground">
-            {relativePath(context, path)}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="break-all font-mono text-[11px] text-muted-foreground">
+              {relativePath(context, path)}
+            </p>
+
+            {dirty ? (
+              <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                Unsaved changes
+              </span>
+            ) : null}
+          </div>
 
           {active.content === null ? (
             <div className="space-y-4">
