@@ -34,6 +34,33 @@ export function DocumentationScreen() {
   const path = targetPath(context, active);
   const dirty = active.content !== null && draft !== active.content;
 
+  // Guard against losing a draft when leaving the app while changes are unsaved.
+  useEffect(() => {
+    if (!dirty) return;
+
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  // Switching documents with an unsaved draft asks first; the draft is only
+  // discarded when the user confirms.
+  const selectDocument = (id: string) => {
+    if (dirty && id !== active?.section.id) {
+      const proceed = window.confirm(
+        `"${active?.section.label}" has unsaved changes. Discard them and switch?`,
+      );
+
+      if (!proceed) return;
+    }
+
+    setActiveId(id);
+  };
+
   const save = async () => {
     setBusy(true);
     try {
