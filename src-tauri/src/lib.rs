@@ -508,6 +508,8 @@ pub fn run() {
             scan_directory,
             read_file,
             write_file,
+            reveal_in_file_manager,
+            open_path,
             git_is_repository,
             git_status,
             git_remote_url,
