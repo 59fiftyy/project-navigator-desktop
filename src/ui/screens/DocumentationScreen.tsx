@@ -27,14 +27,10 @@ export function DocumentationScreen() {
     setDraft(active?.content ?? "");
   }, [active?.path, active?.content, active?.section.id]);
 
-  if (!context || !active) {
-    return null;
-  }
-
-  const path = targetPath(context, active);
-  const dirty = active.content !== null && draft !== active.content;
+  const dirty = active !== undefined && active.content !== null && draft !== active.content;
 
   // Guard against losing a draft when leaving the app while changes are unsaved.
+  // Declared before the early return so the hook order stays stable.
   useEffect(() => {
     if (!dirty) return;
 
@@ -46,6 +42,12 @@ export function DocumentationScreen() {
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
+
+  if (!context || !active) {
+    return null;
+  }
+
+  const path = targetPath(context, active);
 
   // Switching documents with an unsaved draft asks first; the draft is only
   // discarded when the user confirms.
