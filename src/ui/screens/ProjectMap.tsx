@@ -1,10 +1,19 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, File, Folder, Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  File,
+  Folder,
+  FolderOpen,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { useProject } from "@/app/projectStore";
 import { relativePath } from "@/app/projectInsights";
+import { openPath, revealInFileManager } from "@/platform/desktopService";
 import type { ClassifiedFile, ProjectNode } from "@/engine";
 import { ScreenHeader, EmptyHint } from "@/ui/layout/ScreenHeader";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +21,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
@@ -281,6 +291,29 @@ export function ProjectMap() {
     });
   }, []);
 
+  // Same deferral as copy: OS actions run once the menu has fully closed.
+  const runAfterMenuClose = useCallback(
+    (action: (path: string) => Promise<void>, label: string) => {
+      const path = menuTarget?.path ?? "";
+
+      requestAnimationFrame(() => {
+        void (async () => {
+          try {
+            if (!path) {
+              toast.error(`${label} failed`);
+              return;
+            }
+
+            await action(path);
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : `${label} failed`);
+          }
+        })();
+      });
+    },
+    [menuTarget?.path],
+  );
+
   if (!context || !sortedRoot) {
     return null;
   }
@@ -347,7 +380,7 @@ export function ProjectMap() {
                 </div>
               </ContextMenuTrigger>
 
-              <ContextMenuContent className="w-44">
+              <ContextMenuContent className="w-52">
                 <ContextMenuItem
                   disabled={!menuTarget}
                   onSelect={() => copyAfterMenuClose(menuTarget?.name ?? "", "Name")}
@@ -360,6 +393,24 @@ export function ProjectMap() {
                   onSelect={() => copyAfterMenuClose(menuTarget?.path ?? "", "Path")}
                 >
                   Copy path
+                </ContextMenuItem>
+
+                <ContextMenuSeparator />
+
+                <ContextMenuItem
+                  disabled={!menuTarget}
+                  onSelect={() => runAfterMenuClose(revealInFileManager, "Reveal")}
+                >
+                  <FolderOpen className="size-4" />
+                  Reveal in file manager
+                </ContextMenuItem>
+
+                <ContextMenuItem
+                  disabled={!menuTarget}
+                  onSelect={() => runAfterMenuClose(openPath, "Open")}
+                >
+                  <ExternalLink className="size-4" />
+                  Open
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>

@@ -1,5 +1,5 @@
 import { FileText, Folder, Layers, RotateCw, Sparkles } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import { useProject } from "@/app/projectStore";
 import { countCategories, documentationCount, relativePath } from "@/app/projectInsights";
@@ -61,10 +61,17 @@ function List({ items, empty }: { items: string[]; empty: string }) {
 export function Dashboard() {
   const { context, reanalyze } = useProject();
 
+  // Category counting walks every classified file; it must not run on every
+  // re-render (tab switches, selection changes, toasts). Called before the
+  // early return so the hook order stays stable.
+  const categories = useMemo(
+    () => countCategories(context?.analysis.classifiedFiles ?? []),
+    [context?.analysis.classifiedFiles],
+  );
+
   if (!context) return null;
 
   const { project, analysis, understanding } = context;
-  const categories = countCategories(analysis.classifiedFiles);
 
   return (
     <div className="min-h-full pb-12">

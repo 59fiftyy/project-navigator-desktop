@@ -132,6 +132,103 @@ async fn write_file(path: String, content: String) -> Result<(), String> {
     .await
 }
 
+/// Shows `path` in the operating system's file manager, off the main thread.
+#[tauri::command]
+async fn reveal_in_file_manager(path: String) -> Result<(), String> {
+    blocking_task(move || {
+        let target = Path::new(&path);
+
+        if !target.exists() {
+            return Err(format!("Path does not exist: {path}"));
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            std::process::Command::new("explorer")
+                .arg(format!("/select,{path}"))
+                .spawn()
+                .map_err(|error| format!("Could not open the file manager: {error}"))?;
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            std::process::Command::new("open")
+                .args(["-R", &path])
+                .spawn()
+                .map_err(|error| format!("Could not open the file manager: {error}"))?;
+        }
+
+        #[cfg(all(unix, not(target_os = "macos")))]
+        {
+            // Prefer the desktop file manager's ShowItems over opening the
+            // parent folder; fall back to xdg-open on the parent directory.
+            let shown = std::process::Command::new("dbus-send")
+                .args([
+                    "--session",
+                    "--dest=org.freedesktop.FileManager1",
+                    "--type=method_call",
+                    "/org/freedesktop/FileManager1",
+                    "org.freedesktop.FileManager1.ShowItems",
+                    &format!("array:string:file://{path}"),
+                    "string:",
+                ])
+                .status()
+                .map(|status| status.success())
+                .unwrap_or(false);
+
+            if !shown {
+                let parent = target.parent().unwrap_or(target);
+                std::process::Command::new("xdg-open")
+                    .arg(parent)
+                    .spawn()
+                    .map_err(|error| format!("Could not open the file manager: {error}"))?;
+            }
+        }
+
+        Ok(())
+    })
+    .await
+}
+
+/// Opens `path` with the operating system's default application.
+#[tauri::command]
+async fn open_path(path: String) -> Result<(), String> {
+    blocking_task(move || {
+        let target = Path::new(&path);
+
+        if !target.exists() {
+            return Err(format!("Path does not exist: {path}"));
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            std::process::Command::new("cmd")
+                .args(["/C", "start", "", &path])
+                .spawn()
+                .map_err(|error| format!("Could not open the item: {error}"))?;
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            std::process::Command::new("open")
+                .arg(&path)
+                .spawn()
+                .map_err(|error| format!("Could not open the item: {error}"))?;
+        }
+
+        #[cfg(all(unix, not(target_os = "macos")))]
+        {
+            std::process::Command::new("xdg-open")
+                .arg(&path)
+                .spawn()
+                .map_err(|error| format!("Could not open the item: {error}"))?;
+        }
+
+        Ok(())
+    })
+    .await
+}
+
 /// Result of a Git command execution.
 #[derive(serde::Serialize)]
 pub struct GitOutput {
@@ -411,6 +508,8 @@ pub fn run() {
             scan_directory,
             read_file,
             write_file,
+            reveal_in_file_manager,
+            open_path,
             git_is_repository,
             git_status,
             git_remote_url,
