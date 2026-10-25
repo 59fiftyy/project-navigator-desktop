@@ -397,7 +397,7 @@ export function ProjectMap() {
 
                 <ContextMenuItem
                   disabled={!menuTarget}
-                  onSelect={() => runAfterMenuClose(revealInFileManager, "Reveal failed")}
+                  onSelect={() => runAfterMenuClose(revealInFileManager, "Reveal")}
                 >
                   <FolderOpen className="size-4" />
                   Reveal in file manager
@@ -405,7 +405,7 @@ export function ProjectMap() {
 
                 <ContextMenuItem
                   disabled={!menuTarget}
-                  onSelect={() => runAfterMenuClose(openPath, "Open failed")}
+                  onSelect={() => runAfterMenuClose(openPath, "Open")}
                 >
                   <ExternalLink className="size-4" />
                   Open
