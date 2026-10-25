@@ -208,9 +208,17 @@ async fn open_path(path: String) -> Result<(), String> {
                 .map_err(|error| format!("Could not open the item: {error}"))?;
         }
 
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(target_os = "macos")]
         {
             std::process::Command::new("open")
+                .arg(&path)
+                .spawn()
+                .map_err(|error| format!("Could not open the item: {error}"))?;
+        }
+
+        #[cfg(all(unix, not(target_os = "macos")))]
+        {
+            std::process::Command::new("xdg-open")
                 .arg(&path)
                 .spawn()
                 .map_err(|error| format!("Could not open the item: {error}"))?;
