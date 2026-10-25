@@ -377,7 +377,7 @@ export function ProjectMap() {
                 </div>
               </ContextMenuTrigger>
 
-              <ContextMenuContent className="w-44">
+              <ContextMenuContent className="w-52">
                 <ContextMenuItem
                   disabled={!menuTarget}
                   onSelect={() => copyAfterMenuClose(menuTarget?.name ?? "", "Name")}
@@ -390,6 +390,24 @@ export function ProjectMap() {
                   onSelect={() => copyAfterMenuClose(menuTarget?.path ?? "", "Path")}
                 >
                   Copy path
+                </ContextMenuItem>
+
+                <ContextMenuSeparator />
+
+                <ContextMenuItem
+                  disabled={!menuTarget}
+                  onSelect={() => runAfterMenuClose(revealInFileManager, "Reveal failed")}
+                >
+                  <FolderOpen className="size-4" />
+                  Reveal in file manager
+                </ContextMenuItem>
+
+                <ContextMenuItem
+                  disabled={!menuTarget}
+                  onSelect={() => runAfterMenuClose(openPath, "Open failed")}
+                >
+                  <ExternalLink className="size-4" />
+                  Open
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
