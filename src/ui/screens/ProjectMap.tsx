@@ -303,6 +303,7 @@ export function ProjectMap() {
             return;
           }
 
+
           await action(path);
         } catch (error) {
           toast.error(error instanceof Error ? error.message : `${label} failed`);
