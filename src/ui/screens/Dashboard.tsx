@@ -1,5 +1,5 @@
 import { FileText, Folder, Layers, RotateCw, Sparkles } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import { useProject } from "@/app/projectStore";
 import { countCategories, documentationCount, relativePath } from "@/app/projectInsights";
@@ -64,7 +64,13 @@ export function Dashboard() {
   if (!context) return null;
 
   const { project, analysis, understanding } = context;
-  const categories = countCategories(analysis.classifiedFiles);
+
+  // Category counting walks every classified file; it must not run on every
+  // re-render (tab switches, selection changes, toasts).
+  const categories = useMemo(
+    () => countCategories(analysis.classifiedFiles),
+    [analysis.classifiedFiles],
+  );
 
   return (
     <div className="min-h-full pb-12">
