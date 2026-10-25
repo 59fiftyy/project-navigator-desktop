@@ -292,25 +292,27 @@ export function ProjectMap() {
   }, []);
 
   // Same deferral as copy: OS actions run once the menu has fully closed.
-  const runAfterMenuClose = useCallback((action: (path: string) => Promise<void>, label: string) => {
-    const path = menuTarget?.path ?? "";
+  const runAfterMenuClose = useCallback(
+    (action: (path: string) => Promise<void>, label: string) => {
+      const path = menuTarget?.path ?? "";
 
-    requestAnimationFrame(() => {
-      void (async () => {
-        try {
-          if (!path) {
-            toast.error(`${label} failed`);
-            return;
+      requestAnimationFrame(() => {
+        void (async () => {
+          try {
+            if (!path) {
+              toast.error(`${label} failed`);
+              return;
+            }
+
+            await action(path);
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : `${label} failed`);
           }
-
-
-          await action(path);
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : `${label} failed`);
-        }
-      })();
-    });
-  }, [menuTarget?.path]);
+        })();
+      });
+    },
+    [menuTarget?.path],
+  );
 
   if (!context || !sortedRoot) {
     return null;

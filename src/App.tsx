@@ -35,12 +35,7 @@ function Pane({
   }
 
   return (
-    <div
-      className={cn(
-        "h-full min-h-0 overflow-y-auto overscroll-contain",
-        !active && "hidden",
-      )}
-    >
+    <div className={cn("h-full min-h-0 overflow-y-auto overscroll-contain", !active && "hidden")}>
       {children}
     </div>
   );

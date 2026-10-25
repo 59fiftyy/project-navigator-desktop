@@ -16,8 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 function message(error: unknown): string {
-  const raw =
-    error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  const raw = error instanceof Error ? error.message : typeof error === "string" ? error : "";
 
   if (!raw) {
     return "Unexpected Git error.";
