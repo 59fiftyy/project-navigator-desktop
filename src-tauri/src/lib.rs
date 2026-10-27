@@ -596,7 +596,10 @@ mod tests {
         fs::write(Path::new(&cloned).join("a.txt"), "local edit").unwrap();
         let dirty = tauri::async_runtime::block_on(git_pull(cloned.clone()));
         assert!(dirty.unwrap_err().contains("uncommitted"));
-        assert_eq!(fs::read_to_string(Path::new(&cloned).join("a.txt")).unwrap(), "local edit");
+        assert_eq!(
+            fs::read_to_string(Path::new(&cloned).join("a.txt")).unwrap(),
+            "local edit"
+        );
     }
 
     #[test]
