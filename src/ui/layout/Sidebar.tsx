@@ -1,28 +1,19 @@
-import {
-  Compass,
-  FileText,
-  FolderTree,
-  GitBranch,
-  LayoutDashboard,
-  Map,
-  NotebookPen,
-  Settings,
-} from "lucide-react";
+import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 import { useProject } from "@/app/projectStore";
-import { Button } from "@/components/ui/button";
+import { resolveDocuments } from "@/app/documentation";
 
 export type SectionId = "dashboard" | "map" | "docs" | "roadmap" | "git" | "notes" | "settings";
 
-const items: { id: SectionId; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "map", label: "Project Map", icon: FolderTree },
-  { id: "docs", label: "Documentation", icon: FileText },
-  { id: "roadmap", label: "Roadmap", icon: Map },
-  { id: "git", label: "Git", icon: GitBranch },
-  { id: "notes", label: "Notes", icon: NotebookPen },
-  { id: "settings", label: "Settings", icon: Settings },
+export const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "map", label: "Project Map" },
+  { id: "docs", label: "Documentation" },
+  { id: "roadmap", label: "Roadmap" },
+  { id: "git", label: "Git" },
+  { id: "notes", label: "Notes" },
+  { id: "settings", label: "Settings" },
 ];
 
 export function Sidebar({
@@ -32,58 +23,48 @@ export function Sidebar({
   active: SectionId;
   onNavigate: (id: SectionId) => void;
 }) {
-  const { context, chooseProject } = useProject();
+  const { context } = useProject();
+
+  const missingDocs = useMemo(
+    () => (context ? resolveDocuments(context).filter((doc) => doc.content === null).length : 0),
+    [context],
+  );
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
-      <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex size-8 items-center justify-center rounded-md bg-primary/15 text-primary">
-          <Compass className="size-4.5" />
-        </div>
-        <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">Atlas</p>
-          <p className="text-[11px] text-muted-foreground">Project intelligence</p>
-        </div>
-      </div>
+    <aside className="flex h-full w-[232px] shrink-0 flex-col gap-px bg-sidebar px-2.5 py-3">
+      {SECTIONS.map((item) => {
+        const isActive = active === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            aria-current={isActive ? "page" : undefined}
+            onClick={() => onNavigate(item.id)}
+            className={cn(
+              "flex h-[30px] items-center rounded-md px-2.5 text-left transition-colors duration-150 ease-out",
+              isActive
+                ? "bg-hover font-semibold text-foreground"
+                : "text-muted-foreground hover:bg-hover hover:text-foreground",
+            )}
+          >
+            {item.label}
+            {item.id === "docs" && missingDocs > 0 ? (
+              <span
+                className="ml-auto tabular-nums text-signal"
+                title={`${missingDocs} documentation files missing`}
+              >
+                {missingDocs}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
 
-      <nav className="flex flex-1 flex-col gap-0.5 px-3">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                "flex items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-              )}
-            >
-              <Icon className={cn("size-4", isActive && "text-primary")} />
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="border-t border-sidebar-border p-3">
-        <p className="truncate px-1 text-xs font-medium text-sidebar-foreground">
-          {context?.project.name ?? "No project"}
-        </p>
-        <p className="mt-0.5 truncate px-1 font-mono text-[10px] text-muted-foreground">
+      <div className="mt-auto px-2.5 py-2 leading-snug">
+        <p className="truncate font-semibold">{context?.project.name ?? "No project"}</p>
+        <p className="truncate font-mono text-[11px] text-muted-foreground" title={context?.project.path}>
           {context?.project.path ?? "—"}
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-2.5 w-full"
-          onClick={() => void chooseProject()}
-        >
-          Switch project
-        </Button>
       </div>
     </aside>
   );
