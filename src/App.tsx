@@ -1,7 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ProjectProvider, useProject } from "@/app/projectStore";
 import { Sidebar, type SectionId } from "@/ui/layout/Sidebar";
+import { TopBar } from "@/ui/layout/TopBar";
+import { StatusBar } from "@/ui/layout/StatusBar";
+import { CommandPalette } from "@/ui/layout/CommandPalette";
 import { AnalyzingState } from "@/ui/screens/AnalyzingState";
 import { ErrorState } from "@/ui/screens/ErrorState";
 import { WelcomeState } from "@/ui/screens/WelcomeState";
@@ -44,9 +47,21 @@ function Pane({
 function Shell() {
   const { status, context } = useProject();
   const [section, setSection] = useState<SectionId>("dashboard");
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [mounted, setMounted] = useState<ReadonlySet<SectionId>>(
     () => new Set<SectionId>(["dashboard"]),
   );
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const navigate = (next: SectionId) => {
     setSection(next);
@@ -74,7 +89,10 @@ function Shell() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background">
+      <TopBar onSearch={() => setPaletteOpen(true)} />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onNavigate={navigate} />
+      <div className="flex min-h-0 flex-1">
       <Sidebar active={section} onNavigate={navigate} />
 
       <main className="min-w-0 flex-1 overflow-hidden">
@@ -100,6 +118,8 @@ function Shell() {
           <SettingsScreen />
         </Pane>
       </main>
+      </div>
+      <StatusBar />
     </div>
   );
 }
