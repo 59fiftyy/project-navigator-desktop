@@ -9,7 +9,7 @@ export function WelcomeState() {
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-md text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-primary/15 text-primary">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-hover text-foreground">
           <Compass className="size-7" />
         </div>
 

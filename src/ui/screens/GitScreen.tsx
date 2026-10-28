@@ -152,7 +152,7 @@ export function GitScreen() {
       <div className="min-h-0 flex-1 space-y-6 overflow-auto overscroll-contain p-6">
         <section className="rounded-lg border border-border bg-surface/40 p-5">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Download className="size-4 text-primary" />
+            <Download className="size-4 text-muted-foreground" />
             Clone repository
           </h2>
 
@@ -193,7 +193,7 @@ export function GitScreen() {
             {clonedPath ? (
               <div className="space-y-2 rounded-md border border-border bg-background/60 px-3 py-2.5">
                 <p className="flex items-center gap-2 text-xs text-foreground">
-                  <CheckCircle2 className="size-4 text-primary" />
+                  <CheckCircle2 className="size-4 text-muted-foreground" />
                   Cloned to
                 </p>
                 <p className="break-all font-mono text-[11px] text-muted-foreground">
@@ -209,7 +209,7 @@ export function GitScreen() {
 
         <section className="rounded-lg border border-border bg-surface/40 p-5">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <GitBranch className="size-4 text-primary" />
+            <GitBranch className="size-4 text-muted-foreground" />
             Current project
           </h2>
 

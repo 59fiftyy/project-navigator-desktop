@@ -94,7 +94,7 @@ export function Dashboard() {
           <Stat label="Technologies" value={analysis.technologies.length} />
         </div>
 
-        <Panel title="Project type & stack" icon={<Layers className="size-4 text-primary" />}>
+        <Panel title="Project type & stack" icon={<Layers className="size-4 text-muted-foreground" />}>
           <p className="text-sm text-foreground/85">{analysis.projectType}</p>
 
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -110,7 +110,7 @@ export function Dashboard() {
           </div>
         </Panel>
 
-        <Panel title="Vision" icon={<Sparkles className="size-4 text-primary" />}>
+        <Panel title="Vision" icon={<Sparkles className="size-4 text-muted-foreground" />}>
           {understanding.vision ? (
             <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/85 overscroll-contain">
               {understanding.vision}
@@ -139,7 +139,7 @@ export function Dashboard() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Directories" icon={<Folder className="size-4 text-primary" />}>
+          <Panel title="Directories" icon={<Folder className="size-4 text-muted-foreground" />}>
             {analysis.directories.length === 0 ? (
               <EmptyHint>No top-level directories.</EmptyHint>
             ) : (
@@ -185,7 +185,7 @@ export function Dashboard() {
           </Panel>
         </div>
 
-        <Panel title="Important files" icon={<FileText className="size-4 text-primary" />}>
+        <Panel title="Important files" icon={<FileText className="size-4 text-muted-foreground" />}>
           {analysis.importantFiles.length === 0 ? (
             <EmptyHint>No key project files detected.</EmptyHint>
           ) : (

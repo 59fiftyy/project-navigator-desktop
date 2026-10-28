@@ -27,8 +27,8 @@ export function AnalyzingState() {
                 <span
                   className={cn(
                     "flex size-5 items-center justify-center rounded-full border",
-                    done && "border-primary/40 bg-primary/15 text-primary",
-                    active && "border-primary text-primary",
+                    done && "border-border bg-hover text-foreground",
+                    active && "border-signal text-signal",
                     !done && !active && "border-border text-muted-foreground",
                   )}
                 >

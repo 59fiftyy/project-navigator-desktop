@@ -141,7 +141,7 @@ const TreeRowButton = memo(function TreeRowButton({
         "flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-sm",
         "transition-colors",
         isSelected
-          ? "bg-primary/15 text-foreground"
+          ? "bg-selected text-foreground"
           : "text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
       style={{ paddingLeft: `${depth * 14 + 8}px`, height: `${ROW_HEIGHT}px` }}
@@ -157,7 +157,7 @@ const TreeRowButton = memo(function TreeRowButton({
       )}
 
       {isDirectory ? (
-        <Folder className="size-3.5 shrink-0 text-primary/80" />
+        <Folder className="size-3.5 shrink-0 text-muted-foreground" />
       ) : (
         <File className="size-3.5 shrink-0" />
       )}
