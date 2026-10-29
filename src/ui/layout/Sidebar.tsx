@@ -62,7 +62,10 @@ export function Sidebar({
 
       <div className="mt-auto px-2.5 py-2 leading-snug">
         <p className="truncate font-semibold">{context?.project.name ?? "No project"}</p>
-        <p className="truncate font-mono text-[11px] text-muted-foreground" title={context?.project.path}>
+        <p
+          className="truncate font-mono text-[11px] text-muted-foreground"
+          title={context?.project.path}
+        >
           {context?.project.path ?? "—"}
         </p>
       </div>
