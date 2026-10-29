@@ -94,7 +94,10 @@ export function Dashboard() {
           <Stat label="Technologies" value={analysis.technologies.length} />
         </div>
 
-        <Panel title="Project type & stack" icon={<Layers className="size-4 text-muted-foreground" />}>
+        <Panel
+          title="Project type & stack"
+          icon={<Layers className="size-4 text-muted-foreground" />}
+        >
           <p className="text-sm text-foreground/85">{analysis.projectType}</p>
 
           <div className="mt-3 flex flex-wrap gap-1.5">

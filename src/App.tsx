@@ -93,31 +93,31 @@ function Shell() {
       <TopBar onSearch={() => setPaletteOpen(true)} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onNavigate={navigate} />
       <div className="flex min-h-0 flex-1">
-      <Sidebar active={section} onNavigate={navigate} />
+        <Sidebar active={section} onNavigate={navigate} />
 
-      <main className="min-w-0 flex-1 overflow-hidden">
-        <Pane active={section === "dashboard"} mounted={mounted.has("dashboard")}>
-          <Dashboard />
-        </Pane>
-        <Pane active={section === "map"} mounted={mounted.has("map")}>
-          <ProjectMap />
-        </Pane>
-        <Pane active={section === "docs"} mounted={mounted.has("docs")}>
-          <DocumentationScreen />
-        </Pane>
-        <Pane active={section === "roadmap"} mounted={mounted.has("roadmap")}>
-          <RoadmapScreen />
-        </Pane>
-        <Pane active={section === "git"} mounted={mounted.has("git")}>
-          <GitScreen />
-        </Pane>
-        <Pane active={section === "notes"} mounted={mounted.has("notes")}>
-          <NotesScreen />
-        </Pane>
-        <Pane active={section === "settings"} mounted={mounted.has("settings")}>
-          <SettingsScreen />
-        </Pane>
-      </main>
+        <main className="min-w-0 flex-1 overflow-hidden">
+          <Pane active={section === "dashboard"} mounted={mounted.has("dashboard")}>
+            <Dashboard />
+          </Pane>
+          <Pane active={section === "map"} mounted={mounted.has("map")}>
+            <ProjectMap />
+          </Pane>
+          <Pane active={section === "docs"} mounted={mounted.has("docs")}>
+            <DocumentationScreen />
+          </Pane>
+          <Pane active={section === "roadmap"} mounted={mounted.has("roadmap")}>
+            <RoadmapScreen />
+          </Pane>
+          <Pane active={section === "git"} mounted={mounted.has("git")}>
+            <GitScreen />
+          </Pane>
+          <Pane active={section === "notes"} mounted={mounted.has("notes")}>
+            <NotesScreen />
+          </Pane>
+          <Pane active={section === "settings"} mounted={mounted.has("settings")}>
+            <SettingsScreen />
+          </Pane>
+        </main>
       </div>
       <StatusBar />
     </div>
