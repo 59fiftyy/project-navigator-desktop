@@ -97,7 +97,7 @@ function Shell() {
 
         <main className="min-w-0 flex-1 overflow-hidden">
           <Pane active={section === "dashboard"} mounted={mounted.has("dashboard")}>
-            <Dashboard />
+            <Dashboard onNavigate={navigate} />
           </Pane>
           <Pane active={section === "map"} mounted={mounted.has("map")}>
             <ProjectMap />

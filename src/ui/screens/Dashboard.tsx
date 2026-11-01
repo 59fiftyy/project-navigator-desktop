@@ -6,6 +6,10 @@ import { countCategories, documentationCount, relativePath } from "@/app/project
 import { ScreenHeader, EmptyHint } from "@/ui/layout/ScreenHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MapPreview } from "@/ui/dashboard/MapPreview";
+import { TasksPanel } from "@/ui/dashboard/TasksPanel";
+import { ActivityPanel } from "@/ui/dashboard/ActivityPanel";
+import type { SectionId } from "@/ui/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -58,7 +62,7 @@ function List({ items, empty }: { items: string[]; empty: string }) {
   );
 }
 
-export function Dashboard() {
+export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) => void }) {
   const { context, reanalyze } = useProject();
 
   // Category counting walks every classified file; it must not run on every
@@ -93,6 +97,13 @@ export function Dashboard() {
           <Stat label="Directories" value={analysis.directories.length} />
           <Stat label="Technologies" value={analysis.technologies.length} />
         </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <MapPreview context={context} onOpen={() => onNavigate?.("map")} />
+          <TasksPanel context={context} onOpenRoadmap={() => onNavigate?.("roadmap")} />
+        </div>
+
+        <ActivityPanel context={context} />
 
         <Panel
           title="Project type & stack"
