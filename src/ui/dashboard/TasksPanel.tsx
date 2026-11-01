@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Panel } from "./Panel";
 
-export function TasksPanel({ context, onOpenRoadmap }: { context: ProjectContext; onOpenRoadmap: () => void }) {
+export function TasksPanel({
+  context,
+  onOpenRoadmap,
+}: {
+  context: ProjectContext;
+  onOpenRoadmap: () => void;
+}) {
   const { writeProjectFile } = useProject();
   const [busy, setBusy] = useState(false);
 
@@ -64,12 +70,16 @@ export function TasksPanel({ context, onOpenRoadmap }: { context: ProjectContext
         </div>
       ) : tasks.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Roadmap.md has no list items. Add lines like <code className="font-mono">- [ ] task</code>.
+          Roadmap.md has no list items. Add lines like <code className="font-mono">- [ ] task</code>
+          .
         </p>
       ) : (
         <div className="space-y-3">
           <div className="h-1 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-signal" style={{ width: `${(done / tasks.length) * 100}%` }} />
+            <div
+              className="h-full rounded-full bg-signal"
+              style={{ width: `${(done / tasks.length) * 100}%` }}
+            />
           </div>
           {open.length === 0 ? (
             <p className="text-sm text-muted-foreground">All tasks are done.</p>
@@ -92,7 +102,9 @@ export function TasksPanel({ context, onOpenRoadmap }: { context: ProjectContext
                       <Check className="size-2.5 opacity-0 group-hover:opacity-40" />
                     </span>
                     <span className="min-w-0 flex-1 text-foreground/90">{task.text}</span>
-                    <span className="shrink-0 truncate text-xs text-muted-foreground">{task.section}</span>
+                    <span className="shrink-0 truncate text-xs text-muted-foreground">
+                      {task.section}
+                    </span>
                   </button>
                 </li>
               ))}

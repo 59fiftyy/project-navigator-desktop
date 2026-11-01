@@ -19,7 +19,9 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className={cn("flex min-w-0 flex-col rounded-md border border-border bg-surface", className)}>
+    <section
+      className={cn("flex min-w-0 flex-col rounded-md border border-border bg-surface", className)}
+    >
       <header className="flex h-[38px] shrink-0 items-center gap-2 border-b border-border px-4">
         <h2 className="text-[13px] font-medium text-foreground">{title}</h2>
         {meta ? <span className="text-xs tabular-nums text-muted-foreground">{meta}</span> : null}
