@@ -55,9 +55,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Atlas ${{ github.ref_name }}"
+          tagName: v__VERSION__
+          releaseName: "Atlas v__VERSION__"
           releaseBody: "See the assets to download and install Atlas."
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          tauriScript: npm run tauri
