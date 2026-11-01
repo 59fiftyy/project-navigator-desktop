@@ -21,6 +21,7 @@ import {
   pickProjectDirectory,
   DESKTOP_ONLY_MESSAGE,
 } from "@/platform/runtime";
+import { recordActivity } from "@/app/activityLog";
 import {
   clearLastProjectPath,
   loadLastProjectPath,
@@ -165,6 +166,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const writeProjectFile = useCallback(async (path: string, content: string) => {
     const fs = await getProjectFileSystem();
     await fs.writeFile(path, content);
+
+    const root = contextRef.current?.project.path;
+    if (root) {
+      const name = path.split(/[\\/]/).pop() ?? path;
+      recordActivity(root, { kind: "doc", title: `Saved ${name}` });
+    }
 
     const current = contextRef.current;
     if (!current) return;

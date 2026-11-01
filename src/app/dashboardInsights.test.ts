@@ -12,7 +12,7 @@ describe("dashboard tasks", () => {
       ["Theme", true],
       ["Plain item", false],
     ]);
-    expect(tasks[0].section).toBe("Now");
+    expect(tasks[0]?.section).toBe("Now");
   });
 
   it("toggling changes only that line", () => {

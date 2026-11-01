@@ -385,6 +385,20 @@ async fn git_status(path: String) -> Result<GitOutput, String> {
     blocking_task(move || run_git(&["status", "--porcelain=v1", "--branch"], Some(&path))).await
 }
 
+/// Recent commits as unit-separated fields: hash, author, unix time, subject.
+#[tauri::command]
+async fn git_log(path: String, limit: u32) -> Result<String, String> {
+    blocking_task(move || {
+        let count = format!("-n{}", limit.clamp(1, 50));
+        match run_git(&["log", &count, "--pretty=format:%H%x1f%an%x1f%at%x1f%s"], Some(&path)) {
+            Ok(output) => Ok(output.stdout),
+            // Empty repositories have no commits yet.
+            Err(_) => Ok(String::new()),
+        }
+    })
+    .await
+}
+
 /// Configured origin remote URL, when present.
 #[tauri::command]
 async fn git_remote_url(path: String) -> Result<String, String> {
@@ -513,6 +527,7 @@ pub fn run() {
             git_is_repository,
             git_status,
             git_remote_url,
+            git_log,
             git_clone,
             git_pull
         ])

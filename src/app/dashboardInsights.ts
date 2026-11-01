@@ -60,12 +60,18 @@ export function parseTasks(markdown: string): RoadmapTask[] {
     }
     const box = CHECKBOX.exec(raw);
     if (box) {
-      tasks.push({ line, text: box[3].trim(), done: box[2] !== " ", checkbox: true, section });
+      tasks.push({
+        line,
+        text: (box[3] ?? "").trim(),
+        done: box[2] !== " ",
+        checkbox: true,
+        section,
+      });
       return;
     }
     const bullet = BULLET.exec(raw);
-    if (bullet && bullet[1].trim()) {
-      tasks.push({ line, text: bullet[1].trim(), done: false, checkbox: false, section });
+    if (bullet?.[1]?.trim()) {
+      tasks.push({ line, text: (bullet[1] ?? "").trim(), done: false, checkbox: false, section });
     }
   });
 
