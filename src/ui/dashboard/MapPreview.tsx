@@ -1,0 +1,73 @@
+import { useMemo } from "react";
+
+import type { ProjectContext } from "@/engine";
+import { topLevelFolders } from "@/app/dashboardInsights";
+import { Panel } from "./Panel";
+
+const W = 520;
+const H = 260;
+
+export function MapPreview({ context, onOpen }: { context: ProjectContext; onOpen: () => void }) {
+  const { folders, more } = useMemo(
+    () => topLevelFolders(context.project.path, context.project.files),
+    [context.project.path, context.project.files],
+  );
+
+  const nodes = [...folders.map((f) => ({ label: f.name, count: f.count })), ...(more ? [{ label: `+${more} more`, count: -1 }] : [])];
+  const rootX = 70;
+  const rootY = H / 2;
+  const colX = 330;
+  const step = nodes.length > 1 ? (H - 40) / (nodes.length - 1) : 0;
+
+  return (
+    <Panel title="Project map" meta={`${nodes.length} roots`} action="View full map" onAction={onOpen}>
+      {nodes.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No files scanned.</p>
+      ) : (
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Project map preview">
+          {nodes.map((node, i) => {
+            const y = nodes.length > 1 ? 20 + i * step : rootY;
+            return (
+              <path
+                key={`e-${node.label}`}
+                d={`M ${rootX + 50} ${rootY} C ${rootX + 160} ${rootY}, ${colX - 110} ${y}, ${colX} ${y}`}
+                fill="none"
+                className={i === 0 ? "stroke-signal/70" : "stroke-border"}
+                strokeWidth={1.25}
+              />
+            );
+          })}
+
+          <g>
+            <rect x={rootX - 50} y={rootY - 16} width={100} height={32} rx={6} className="fill-surface-raised stroke-border" />
+            <text x={rootX} y={rootY + 4} textAnchor="middle" className="fill-foreground text-[12px] font-medium">
+              {context.project.name.length > 14 ? `${context.project.name.slice(0, 13)}…` : context.project.name}
+            </text>
+          </g>
+
+          {nodes.map((node, i) => {
+            const y = nodes.length > 1 ? 20 + i * step : rootY;
+            const clickable = node.count >= 0;
+            return (
+              <g
+                key={`n-${node.label}`}
+                onClick={clickable ? onOpen : undefined}
+                className={clickable ? "cursor-pointer" : undefined}
+              >
+                <circle cx={colX} cy={y} r={3.5} className={i === 0 ? "fill-signal" : "fill-muted-foreground"} />
+                <text x={colX + 12} y={y + 4} className="fill-foreground font-mono text-[11.5px]">
+                  {node.label.length > 18 ? `${node.label.slice(0, 17)}…` : node.label}
+                </text>
+                {clickable ? (
+                  <text x={W - 8} y={y + 4} textAnchor="end" className="fill-muted-foreground text-[11px] tabular-nums">
+                    {node.count.toLocaleString()}
+                  </text>
+                ) : null}
+              </g>
+            );
+          })}
+        </svg>
+      )}
+    </Panel>
+  );
+}
