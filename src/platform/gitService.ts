@@ -76,3 +76,23 @@ export async function cloneRepository(
 export async function pullRepository(path: string): Promise<string> {
   return await invokeGit<string>("git_pull", { path });
 }
+
+export interface GitCommit {
+  hash: string;
+  author: string;
+  at: number;
+  subject: string;
+}
+
+/** Latest commits of the repository; empty when not a repository. */
+export async function recentCommits(path: string, limit = 10): Promise<GitCommit[]> {
+  if (!(await invokeGit<boolean>("git_is_repository", { path }))) return [];
+  const raw = await invokeGit<string>("git_log", { path, limit });
+  return raw
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [hash = "", author = "", at = "0", subject = ""] = line.split("\x1f");
+      return { hash, author, at: Number(at) * 1000, subject };
+    });
+}
