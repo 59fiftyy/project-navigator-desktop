@@ -55,7 +55,7 @@
   --color-hover: var(--hover);
   --color-selected: var(--selected);
   --font-sans:
-    "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+    "Plus Jakarta Sans Variable", "Heebo Variable", "Segoe UI", system-ui, sans-serif;
   --font-mono: "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 

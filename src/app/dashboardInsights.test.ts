@@ -48,3 +48,23 @@ describe("activity", () => {
     expect(items.map((i) => i.id)).toEqual(["b", "a"]);
   });
 });
+
+import { appendTask, detectLanguages, folderRole, countLines } from "./dashboardInsights";
+
+describe("dashboard additions", () => {
+  it("adds a new open task at the end", () => {
+    expect(appendTask("# Roadmap\n", "Ship v1")).toBe("# Roadmap\n- [ ] Ship v1\n");
+    expect(appendTask("x", "   ")).toBe("x");
+  });
+  it("detects distinct languages", () => {
+    expect(detectLanguages([{ extension: "ts" }, { extension: ".tsx" }, { extension: "rs" }, { extension: "md" }])).toEqual(["Rust", "TypeScript"]);
+  });
+  it("counts non-empty lines", () => {
+    expect(countLines("a\n\n b\n")).toBe(2);
+  });
+  it("guesses folder roles", () => {
+    expect(folderRole("src")).toBe("Source");
+    expect(folderRole("src-tauri")).toBe("Backend");
+    expect(folderRole("random")).toBeNull();
+  });
+});

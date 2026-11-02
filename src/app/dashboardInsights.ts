@@ -121,3 +121,57 @@ export function relativeTime(at: number, now = Date.now()): string {
   if (days < 30) return `${days} d ago`;
   return new Date(at).toLocaleDateString();
 }
+
+/** Appends a new open checklist item to the end of a roadmap document. */
+export function appendTask(markdown: string, text: string): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (!clean) return markdown;
+  const body = markdown.replace(/\s+$/, "");
+  return `${body}${body ? "\n" : ""}- [ ] ${clean}\n`;
+}
+
+const LANGUAGE_BY_EXTENSION: Record<string, string> = {
+  ts: "TypeScript", tsx: "TypeScript", js: "JavaScript", jsx: "JavaScript", mjs: "JavaScript",
+  cjs: "JavaScript", py: "Python", rs: "Rust", go: "Go", java: "Java", kt: "Kotlin",
+  swift: "Swift", c: "C", h: "C", cpp: "C++", cc: "C++", hpp: "C++", cs: "C#", rb: "Ruby",
+  php: "PHP", dart: "Dart", scala: "Scala", lua: "Lua", sh: "Shell", bash: "Shell",
+  css: "CSS", scss: "SCSS", html: "HTML", vue: "Vue", svelte: "Svelte", sql: "SQL",
+};
+
+/** Programming language of a file extension, or null when it is not source code. */
+export function languageOf(extension: string): string | null {
+  return LANGUAGE_BY_EXTENSION[extension.replace(/^\./, "").toLowerCase()] ?? null;
+}
+
+/** Distinct programming languages in the scanned files. */
+export function detectLanguages(files: { extension: string }[]): string[] {
+  const set = new Set<string>();
+  for (const f of files) {
+    const lang = languageOf(f.extension);
+    if (lang) set.add(lang);
+  }
+  return [...set].sort();
+}
+
+/** Number of non-empty lines in a text. */
+export function countLines(text: string): number {
+  let n = 0;
+  for (const line of text.split("\n")) if (line.trim()) n++;
+  return n;
+}
+
+const FOLDER_ROLES: [RegExp, string][] = [
+  [/^(src|app|lib|source|packages)$/i, "Source"],
+  [/^(tests?|__tests__|spec|e2e)$/i, "Tests"],
+  [/^(docs?|atlas|documentation)$/i, "Docs"],
+  [/^(public|assets|static|images|media)$/i, "Assets"],
+  [/^(scripts|tools|bin)$/i, "Scripts"],
+  [/^(\.github|\.vscode|config|\.config)$/i, "Config"],
+  [/-tauri$|^(server|backend|api|supabase)$/i, "Backend"],
+  [/^\(root\)$/, "Root files"],
+];
+
+/** Guesses the role of a top-level folder from its name. */
+export function folderRole(name: string): string | null {
+  return FOLDER_ROLES.find(([re]) => re.test(name))?.[1] ?? null;
+}
