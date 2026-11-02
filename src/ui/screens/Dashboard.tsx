@@ -33,7 +33,7 @@ function Stat({
 }: {
   label: string;
   value: string | number;
-  hint?: string;
+  hint?: string | undefined;
   icon: LucideIcon;
 }) {
   return (
@@ -73,6 +73,7 @@ function useLinesOfCode(
       const worker = async () => {
         while (!cancelled && index < code.length) {
           const file = code[index++];
+          if (!file) break;
           try {
             total += countLines(await fs.readFile(file.path));
           } catch {

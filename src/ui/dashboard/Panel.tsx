@@ -13,7 +13,7 @@ export function Panel({
 }: {
   title: string;
   meta?: ReactNode;
-  action?: string;
+  action?: string | undefined;
   onAction?: () => void;
   className?: string;
   children: ReactNode;
