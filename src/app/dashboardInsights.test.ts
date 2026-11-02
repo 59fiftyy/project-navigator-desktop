@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { mergeActivity, parseTasks, toggleTask, topLevelFolders } from "./dashboardInsights";
+import {
+  appendTask,
+  countLines,
+  detectLanguages,
+  folderRole,
+  mergeActivity,
+  parseTasks,
+  toggleTask,
+  topLevelFolders,
+} from "./dashboardInsights";
 
 const md = "# Now\n- [ ] Build map\n- [x] Theme\n- Plain item\n```\n- not a task\n```\n";
 
@@ -46,5 +55,30 @@ describe("activity", () => {
       [{ id: "b", kind: "doc", title: "b", at: 5 }],
     );
     expect(items.map((i) => i.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("dashboard additions", () => {
+  it("adds a new open task at the end", () => {
+    expect(appendTask("# Roadmap\n", "Ship v1")).toBe("# Roadmap\n- [ ] Ship v1\n");
+    expect(appendTask("x", "   ")).toBe("x");
+  });
+  it("detects distinct languages", () => {
+    expect(
+      detectLanguages([
+        { extension: "ts" },
+        { extension: ".tsx" },
+        { extension: "rs" },
+        { extension: "md" },
+      ]),
+    ).toEqual(["Rust", "TypeScript"]);
+  });
+  it("counts non-empty lines", () => {
+    expect(countLines("a\n\n b\n")).toBe(2);
+  });
+  it("guesses folder roles", () => {
+    expect(folderRole("src")).toBe("Source");
+    expect(folderRole("src-tauri")).toBe("Backend");
+    expect(folderRole("random")).toBeNull();
   });
 });

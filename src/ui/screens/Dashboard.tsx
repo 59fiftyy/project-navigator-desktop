@@ -1,5 +1,18 @@
-import { FileText, Folder, Layers, RotateCw, Sparkles } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import {
+  BookText,
+  Code2,
+  Cpu,
+  FileText,
+  Files,
+  Folder,
+  Layers,
+  RotateCw,
+  type LucideIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { detectLanguages, countLines, languageOf } from "@/app/dashboardInsights";
+import { getProjectFileSystem } from "@/platform/runtime";
+import { DocsPanel } from "@/ui/dashboard/DocsPanel";
 
 import { useProject } from "@/app/projectStore";
 import { countCategories, documentationCount, relativePath } from "@/app/projectInsights";
@@ -12,15 +25,70 @@ import { ActivityPanel } from "@/ui/dashboard/ActivityPanel";
 import type { SectionId } from "@/ui/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({
+  label,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string | undefined;
+  icon: LucideIcon;
+}) {
   return (
     <Card className="gap-0 py-4">
-      <CardContent className="px-4">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="mt-1.5 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+      <CardContent className="flex items-start gap-3 px-4">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-signal/10">
+          <Icon className="size-4 text-signal" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="mt-0.5 text-xl font-semibold tabular-nums text-foreground">{value}</p>
+          {hint ? <p className="truncate text-xs text-muted-foreground">{hint}</p> : null}
+        </div>
       </CardContent>
     </Card>
   );
+}
+
+/**
+ * Counts lines of source code in the background, a few files at a time, so the
+ * dashboard never blocks. Recomputed only when the scanned file list changes.
+ */
+function useLinesOfCode(
+  files: { path: string; extension: string }[] | undefined,
+  enabled: boolean,
+) {
+  const [lines, setLines] = useState<number | null>(null);
+  useEffect(() => {
+    if (!files || !enabled) return;
+    let cancelled = false;
+    setLines(null);
+    const code = files.filter((f) => languageOf(f.extension));
+    void (async () => {
+      const fs = await getProjectFileSystem();
+      let total = 0;
+      let index = 0;
+      const worker = async () => {
+        while (!cancelled && index < code.length) {
+          const file = code[index++];
+          if (!file) break;
+          try {
+            total += countLines(await fs.readFile(file.path));
+          } catch {
+            /* unreadable file: skip */
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: 6 }, worker));
+      if (!cancelled) setLines(total);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [files, enabled]);
+  return lines;
 }
 
 function Panel({
@@ -45,25 +113,11 @@ function Panel({
   );
 }
 
-function List({ items, empty }: { items: string[]; empty: string }) {
-  if (items.length === 0) {
-    return <EmptyHint>{empty}</EmptyHint>;
-  }
-
-  return (
-    <ul className="space-y-1.5 text-sm text-muted-foreground">
-      {items.slice(0, 12).map((item, index) => (
-        <li key={`${item}-${index}`} className="flex gap-2">
-          <span className="mt-2 size-1 shrink-0 rounded-full bg-primary" />
-          <span className="text-foreground/85">{item}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) => void }) {
-  const { context, reanalyze } = useProject();
+  const { context, reanalyze, desktop } = useProject();
+  const files = context?.project.files;
+  const languages = useMemo(() => detectLanguages(files ?? []), [files]);
+  const lines = useLinesOfCode(files, desktop);
 
   // Category counting walks every classified file; it must not run on every
   // re-render (tab switches, selection changes, toasts). Called before the
@@ -75,7 +129,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
 
   if (!context) return null;
 
-  const { project, analysis, understanding } = context;
+  const { project, analysis } = context;
 
   return (
     <div className="min-h-full pb-12">
@@ -92,16 +146,28 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
 
       <div className="space-y-6 px-8 py-6">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Stat label="Files" value={analysis.totalFiles} />
-          <Stat label="Documentation" value={documentationCount(context)} />
-          <Stat label="Directories" value={analysis.directories.length} />
-          <Stat label="Technologies" value={analysis.technologies.length} />
+          <Stat icon={Files} label="Files" value={analysis.totalFiles.toLocaleString()} />
+          <Stat icon={BookText} label="Documentation" value={documentationCount(context)} />
+          <Stat
+            icon={Code2}
+            label="Lines of code / Languages"
+            value={`${lines === null ? (desktop ? "…" : "—") : lines.toLocaleString()} / ${languages.length}`}
+            hint={languages.slice(0, 4).join(", ") || undefined}
+          />
+          <Stat
+            icon={Cpu}
+            label="Technologies"
+            value={analysis.technologies.length}
+            hint={analysis.technologies.slice(0, 3).join(", ") || undefined}
+          />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <MapPreview context={context} onOpen={() => onNavigate?.("map")} />
           <TasksPanel context={context} onOpenRoadmap={() => onNavigate?.("roadmap")} />
         </div>
+
+        <DocsPanel context={context} onViewAll={() => onNavigate?.("docs")} />
 
         <ActivityPanel context={context} />
 
@@ -123,34 +189,6 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
             )}
           </div>
         </Panel>
-
-        <Panel title="Vision" icon={<Sparkles className="size-4 text-muted-foreground" />}>
-          {understanding.vision ? (
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/85 overscroll-contain">
-              {understanding.vision}
-            </pre>
-          ) : (
-            <EmptyHint>No Vision.md found in this project.</EmptyHint>
-          )}
-        </Panel>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Goals">
-            <List items={understanding.goals} empty="No goals extracted." />
-          </Panel>
-
-          <Panel title="Features">
-            <List items={understanding.features} empty="No Features.md found." />
-          </Panel>
-
-          <Panel title="Requirements">
-            <List items={understanding.requirements} empty="No PRD.md found." />
-          </Panel>
-
-          <Panel title="Decisions">
-            <List items={understanding.decisions} empty="No ADR.md found." />
-          </Panel>
-        </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Panel title="Directories" icon={<Folder className="size-4 text-muted-foreground" />}>
@@ -210,16 +248,6 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
                 </li>
               ))}
             </ul>
-          )}
-        </Panel>
-
-        <Panel title="Roadmap summary">
-          {understanding.roadmap ? (
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/85 overscroll-contain">
-              {understanding.roadmap}
-            </pre>
-          ) : (
-            <EmptyHint>No Roadmap.md found in this project.</EmptyHint>
           )}
         </Panel>
       </div>

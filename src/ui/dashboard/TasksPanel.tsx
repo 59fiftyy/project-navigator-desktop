@@ -1,11 +1,11 @@
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import type { ProjectContext } from "@/engine";
 import { useProject } from "@/app/projectStore";
 import { resolveDocuments, targetPath } from "@/app/documentation";
-import { parseTasks, toggleTask } from "@/app/dashboardInsights";
+import { appendTask, parseTasks, toggleTask } from "@/app/dashboardInsights";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Panel } from "./Panel";
@@ -19,6 +19,7 @@ export function TasksPanel({
 }) {
   const { writeProjectFile } = useProject();
   const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState("");
 
   const roadmap = useMemo(
     () => resolveDocuments(context).find((doc) => doc.section.id === "roadmap"),
@@ -40,6 +41,43 @@ export function TasksPanel({
       setBusy(false);
     }
   };
+
+  const add = async () => {
+    const text = draft.trim();
+    if (!roadmap || !text || busy) return;
+    setBusy(true);
+    try {
+      const base = content ?? roadmap.section.template;
+      await writeProjectFile(roadmap.path ?? targetPath(context, roadmap), appendTask(base, text));
+      setDraft("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not add the task.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addForm = (
+    <form
+      className="mt-3 flex items-center gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void add();
+      }}
+    >
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="New task…"
+        aria-label="New task"
+        className="h-8 min-w-0 flex-1 rounded border border-border bg-background px-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-signal"
+      />
+      <Button type="submit" size="sm" variant="outline" disabled={busy || !draft.trim()}>
+        <Plus className="size-3.5" />
+        Add task
+      </Button>
+    </form>
+  );
 
   const create = async () => {
     if (!roadmap) return;
@@ -69,10 +107,10 @@ export function TasksPanel({
           </Button>
         </div>
       ) : tasks.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Roadmap.md has no list items. Add lines like <code className="font-mono">- [ ] task</code>
-          .
-        </p>
+        <div>
+          <p className="text-sm text-muted-foreground">No tasks yet. Add your first one.</p>
+          {addForm}
+        </div>
       ) : (
         <div className="space-y-3">
           <div className="h-1 overflow-hidden rounded-full bg-muted">
@@ -110,6 +148,7 @@ export function TasksPanel({
               ))}
             </ul>
           )}
+          {addForm}
         </div>
       )}
     </Panel>

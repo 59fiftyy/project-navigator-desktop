@@ -42,6 +42,7 @@ export function ActivityPanel({ context }: { context: ProjectContext }) {
     };
   }, [context.project.path, desktop, lastAnalyzedAt]);
 
+  const [showAll, setShowAll] = useState(false);
   const items = useMemo(() => {
     const analysis: ActivityItem[] = lastAnalyzedAt
       ? [
@@ -53,16 +54,21 @@ export function ActivityPanel({ context }: { context: ProjectContext }) {
           },
         ]
       : [];
-    return mergeActivity(commits, local, analysis).slice(0, 12);
+    return mergeActivity(commits, local, analysis);
   }, [commits, local, lastAnalyzedAt]);
 
   return (
-    <Panel title="Recent activity" meta={gitNote ?? undefined}>
+    <Panel
+      title="Recent activity"
+      meta={gitNote ?? (items.length ? `${items.length}` : undefined)}
+      action={items.length > 5 ? (showAll ? "Show less" : "View all") : undefined}
+      onAction={() => setShowAll((v) => !v)}
+    >
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">No activity yet.</p>
       ) : (
         <ul className="divide-y divide-border">
-          {items.map((item) => {
+          {(showAll ? items : items.slice(0, 5)).map((item) => {
             const Icon = ICONS[item.kind];
             return (
               <li key={item.id} className="flex items-center gap-3 py-2 text-sm">
