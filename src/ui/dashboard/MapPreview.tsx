@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { ProjectContext } from "@/engine";
-import { topLevelFolders } from "@/app/dashboardInsights";
+import { folderRole, topLevelFolders } from "@/app/dashboardInsights";
 import { Panel } from "./Panel";
 
 const W = 520;
@@ -14,8 +14,8 @@ export function MapPreview({ context, onOpen }: { context: ProjectContext; onOpe
   );
 
   const nodes = [
-    ...folders.map((f) => ({ label: f.name, count: f.count })),
-    ...(more ? [{ label: `+${more} more`, count: -1 }] : []),
+    ...folders.map((f) => ({ label: f.name, count: f.count, role: folderRole(f.name) })),
+    ...(more ? [{ label: `+${more} more`, count: -1, role: null }] : []),
   ];
   const rootX = 70;
   const rootY = H / 2;
@@ -25,7 +25,7 @@ export function MapPreview({ context, onOpen }: { context: ProjectContext; onOpe
   return (
     <Panel
       title="Project map"
-      meta={`${nodes.length} roots`}
+      meta={`${nodes.length} roots · largest highlighted`}
       action="View full map"
       onAction={onOpen}
     >
@@ -78,6 +78,8 @@ export function MapPreview({ context, onOpen }: { context: ProjectContext; onOpe
             return (
               <g
                 key={`n-${node.label}`}
+                role={clickable ? "button" : undefined}
+                aria-label={clickable ? `Open ${node.label} in the project map` : undefined}
                 onClick={clickable ? onOpen : undefined}
                 className={clickable ? "cursor-pointer" : undefined}
               >
@@ -88,8 +90,13 @@ export function MapPreview({ context, onOpen }: { context: ProjectContext; onOpe
                   className={i === 0 ? "fill-signal" : "fill-muted-foreground"}
                 />
                 <text x={colX + 12} y={y + 4} className="fill-foreground font-mono text-[11.5px]">
-                  {node.label.length > 18 ? `${node.label.slice(0, 17)}…` : node.label}
+                  {node.label.length > 16 ? `${node.label.slice(0, 15)}…` : node.label}
                 </text>
+                {node.role ? (
+                  <text x={colX + 150} y={y + 4} className="fill-muted-foreground text-[10.5px]">
+                    {node.role}
+                  </text>
+                ) : null}
                 {clickable ? (
                   <text
                     x={W - 8}

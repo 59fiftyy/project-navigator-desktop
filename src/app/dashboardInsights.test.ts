@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { mergeActivity, parseTasks, toggleTask, topLevelFolders } from "./dashboardInsights";
+import {
+  appendTask,
+  countLines,
+  detectLanguages,
+  folderRole,
+  mergeActivity, parseTasks, toggleTask, topLevelFolders } from "./dashboardInsights";
 
 const md = "# Now\n- [ ] Build map\n- [x] Theme\n- Plain item\n```\n- not a task\n```\n";
 
@@ -48,8 +53,6 @@ describe("activity", () => {
     expect(items.map((i) => i.id)).toEqual(["b", "a"]);
   });
 });
-
-import { appendTask, detectLanguages, folderRole, countLines } from "./dashboardInsights";
 
 describe("dashboard additions", () => {
   it("adds a new open task at the end", () => {
