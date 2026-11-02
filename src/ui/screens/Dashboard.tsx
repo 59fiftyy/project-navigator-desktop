@@ -115,7 +115,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
 
   if (!context) return null;
 
-  const { project, analysis, understanding } = context;
+  const { project, analysis } = context;
 
   return (
     <div className="min-h-full pb-12">
