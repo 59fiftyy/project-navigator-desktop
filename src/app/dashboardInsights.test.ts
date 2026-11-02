@@ -5,7 +5,11 @@ import {
   countLines,
   detectLanguages,
   folderRole,
-  mergeActivity, parseTasks, toggleTask, topLevelFolders } from "./dashboardInsights";
+  mergeActivity,
+  parseTasks,
+  toggleTask,
+  topLevelFolders,
+} from "./dashboardInsights";
 
 const md = "# Now\n- [ ] Build map\n- [x] Theme\n- Plain item\n```\n- not a task\n```\n";
 
@@ -60,7 +64,14 @@ describe("dashboard additions", () => {
     expect(appendTask("x", "   ")).toBe("x");
   });
   it("detects distinct languages", () => {
-    expect(detectLanguages([{ extension: "ts" }, { extension: ".tsx" }, { extension: "rs" }, { extension: "md" }])).toEqual(["Rust", "TypeScript"]);
+    expect(
+      detectLanguages([
+        { extension: "ts" },
+        { extension: ".tsx" },
+        { extension: "rs" },
+        { extension: "md" },
+      ]),
+    ).toEqual(["Rust", "TypeScript"]);
   });
   it("counts non-empty lines", () => {
     expect(countLines("a\n\n b\n")).toBe(2);

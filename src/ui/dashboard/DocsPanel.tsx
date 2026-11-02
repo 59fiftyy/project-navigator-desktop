@@ -49,7 +49,9 @@ const KEYWORD_ICONS: [RegExp, LucideIcon, string][] = [
 
 function customMeta(name: string): { icon: LucideIcon; description: string } {
   const hit = KEYWORD_ICONS.find(([re]) => re.test(name));
-  return hit ? { icon: hit[1], description: hit[2] } : { icon: FileText, description: "Project document" };
+  return hit
+    ? { icon: hit[1], description: hit[2] }
+    : { icon: FileText, description: "Project document" };
 }
 
 interface Card {
@@ -113,14 +115,22 @@ export function DocsPanel({
   }, [context]);
 
   const createCustom = async () => {
-    const base = name.trim().replace(/\.md$/i, "").replace(/[\\/:*?"<>|]/g, "").trim();
+    const base = name
+      .trim()
+      .replace(/\.md$/i, "")
+      .replace(/[\\/:*?"<>|]/g, "")
+      .trim();
     if (!base) return;
     const fileName = `${base}.md`;
     if (cards.some((c) => c.name.toLowerCase() === fileName.toLowerCase())) {
       toast.error(`${fileName} already exists.`);
       return;
     }
-    const ok = await write(`${documentationDirectory(context)}/${fileName}`, `# ${base}\n\n`, fileName);
+    const ok = await write(
+      `${documentationDirectory(context)}/${fileName}`,
+      `# ${base}\n\n`,
+      fileName,
+    );
     if (ok) {
       setName("");
       setNaming(false);

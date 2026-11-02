@@ -1,4 +1,14 @@
-import { BookText, Code2, Cpu, FileText, Files, Folder, Layers, RotateCw, type LucideIcon } from "lucide-react";
+import {
+  BookText,
+  Code2,
+  Cpu,
+  FileText,
+  Files,
+  Folder,
+  Layers,
+  RotateCw,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { detectLanguages, countLines, languageOf } from "@/app/dashboardInsights";
 import { getProjectFileSystem } from "@/platform/runtime";
@@ -46,7 +56,10 @@ function Stat({
  * Counts lines of source code in the background, a few files at a time, so the
  * dashboard never blocks. Recomputed only when the scanned file list changes.
  */
-function useLinesOfCode(files: { path: string; extension: string }[] | undefined, enabled: boolean) {
+function useLinesOfCode(
+  files: { path: string; extension: string }[] | undefined,
+  enabled: boolean,
+) {
   const [lines, setLines] = useState<number | null>(null);
   useEffect(() => {
     if (!files || !enabled) return;
@@ -236,7 +249,6 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
             </ul>
           )}
         </Panel>
-
       </div>
     </div>
   );
