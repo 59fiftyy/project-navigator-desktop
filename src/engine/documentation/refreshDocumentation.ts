@@ -9,7 +9,7 @@ import { buildProjectContextBase, buildProjectContext } from "../context/project
 import { understandProject } from "../understanding/projectUnderstanding";
 
 function fileEntry(path: string): ProjectFile {
-  const name = path.split("/").pop() ?? path;
+  const name = path.split(/[\\/]/).pop() ?? path;
   const dotIndex = name.lastIndexOf(".");
 
   return {
@@ -57,5 +57,5 @@ export async function refreshProjectDocumentation(
   const knowledge = await buildProjectKnowledge(project, classifiedFiles, fs);
   const baseContext = buildProjectContextBase(project, analysis, knowledge);
 
-  return buildProjectContext(baseContext, understandProject(baseContext));
+  return { ...context, ...buildProjectContext(baseContext, understandProject(baseContext)) };
 }

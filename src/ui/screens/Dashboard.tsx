@@ -9,9 +9,8 @@ import {
   RotateCw,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { detectLanguages, countLines, languageOf } from "@/app/dashboardInsights";
-import { getProjectFileSystem } from "@/platform/runtime";
+import { useMemo, type ReactNode } from "react";
+import { detectLanguages } from "@/app/dashboardInsights";
 import { DocsPanel } from "@/ui/dashboard/DocsPanel";
 
 import { useProject } from "@/app/projectStore";
@@ -56,41 +55,6 @@ function Stat({
  * Counts lines of source code in the background, a few files at a time, so the
  * dashboard never blocks. Recomputed only when the scanned file list changes.
  */
-function useLinesOfCode(
-  files: { path: string; extension: string }[] | undefined,
-  enabled: boolean,
-) {
-  const [lines, setLines] = useState<number | null>(null);
-  useEffect(() => {
-    if (!files || !enabled) return;
-    let cancelled = false;
-    setLines(null);
-    const code = files.filter((f) => languageOf(f.extension));
-    void (async () => {
-      const fs = await getProjectFileSystem();
-      let total = 0;
-      let index = 0;
-      const worker = async () => {
-        while (!cancelled && index < code.length) {
-          const file = code[index++];
-          if (!file) break;
-          try {
-            total += countLines(await fs.readFile(file.path));
-          } catch {
-            /* unreadable file: skip */
-          }
-        }
-      };
-      await Promise.all(Array.from({ length: 6 }, worker));
-      if (!cancelled) setLines(total);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [files, enabled]);
-  return lines;
-}
-
 function Panel({
   title,
   icon,
@@ -114,10 +78,10 @@ function Panel({
 }
 
 export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) => void }) {
-  const { context, reanalyze, desktop } = useProject();
+  const { context, reanalyze } = useProject();
   const files = context?.project.files;
   const languages = useMemo(() => detectLanguages(files ?? []), [files]);
-  const lines = useLinesOfCode(files, desktop);
+  const lines = context?.codeIntelligence?.linesOfCode;
 
   // Category counting walks every classified file; it must not run on every
   // re-render (tab switches, selection changes, toasts). Called before the
@@ -151,8 +115,8 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
           <Stat
             icon={Code2}
             label="Lines of code / Languages"
-            value={`${lines === null ? (desktop ? "…" : "—") : lines.toLocaleString()} / ${languages.length}`}
-            hint={languages.slice(0, 4).join(", ") || undefined}
+            value={`${lines === undefined ? "—" : `${context.codeIntelligence?.unreadableSourceFiles ? "≥ " : ""}${lines.toLocaleString()}`} / ${languages.length}`}
+            hint={context.codeIntelligence?.unreadableSourceFiles ? `${context.codeIntelligence.unreadableSourceFiles} unreadable files · partial count` : languages.slice(0, 4).join(", ") || undefined}
           />
           <Stat
             icon={Cpu}
@@ -162,7 +126,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
           />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           <MapPreview context={context} onOpen={() => onNavigate?.("map")} />
           <TasksPanel context={context} onOpenRoadmap={() => onNavigate?.("roadmap")} />
         </div>
