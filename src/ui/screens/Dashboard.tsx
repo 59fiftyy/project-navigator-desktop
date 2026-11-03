@@ -23,6 +23,7 @@ import { TasksPanel } from "@/ui/dashboard/TasksPanel";
 import { ActivityPanel } from "@/ui/dashboard/ActivityPanel";
 import type { SectionId } from "@/ui/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { MapTarget } from "@/app/mapNavigation";
 
 function Stat({
   label,
@@ -77,7 +78,7 @@ function Panel({
   );
 }
 
-export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) => void }) {
+export function Dashboard({ onNavigate, onOpenMap }: { onNavigate?: (section: SectionId) => void; onOpenMap?: (target: MapTarget) => void }) {
   const { context, reanalyze } = useProject();
   const files = context?.project.files;
   const languages = useMemo(() => detectLanguages(files ?? []), [files]);
@@ -127,7 +128,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (section: SectionId) =>
         </div>
 
         <div className="grid items-start gap-4 lg:grid-cols-2">
-          <MapPreview context={context} onOpen={() => onNavigate?.("map")} />
+          <MapPreview context={context} onOpen={() => onOpenMap ? onOpenMap({ view: "tree" }) : onNavigate?.("map")} onGraph={() => onOpenMap?.({ view: "graph" })} onFolder={(path) => onOpenMap?.({ view: "tree", path })} />
           <TasksPanel context={context} onOpenRoadmap={() => onNavigate?.("roadmap")} />
         </div>
 
