@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -27,6 +27,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { copyText } from "@/lib/clipboard";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { MapTarget, MapView } from "@/app/mapNavigation";
+
+const IntelligencePane = lazy(() => import("@/ui/intelligence/IntelligencePane"));
 
 const ROW_HEIGHT = 28;
 
@@ -175,8 +179,9 @@ function countFiles(node: ProjectNode): number {
   return node.children.reduce((total, child) => total + countFiles(child), 0);
 }
 
-export function ProjectMap() {
+export function ProjectMap({ target }: { target?: MapTarget | undefined }) {
   const { context } = useProject();
+  const [view, setView] = useState<MapView>("tree");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ProjectNode | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
@@ -222,6 +227,24 @@ export function ProjectMap() {
     setExpanded(sortedRoot ? new Set([sortedRoot.path]) : new Set());
   }, [sortedRoot]);
 
+  useEffect(() => {
+    if (!target) return;
+    setView(target.view);
+    if (!target.path || !sortedRoot) return;
+    const normalized = target.path.replace(/\\/g, "/");
+    const ancestors = new Set<string>();
+    let found: ProjectNode | null = null;
+    const visit = (node: ProjectNode): boolean => {
+      if (node.path.replace(/\\/g, "/") === normalized) { found = node; return true; }
+      for (const child of node.children) if (visit(child)) { ancestors.add(node.path); return true; }
+      return false;
+    };
+    visit(sortedRoot);
+    setQuery("");
+    setSelected(found);
+    setExpanded((current) => new Set([...current, ...ancestors, target.path ?? sortedRoot.path]));
+  }, [target, sortedRoot]);
+
   const rows = useMemo(() => {
     const collected: TreeRow[] = [];
 
@@ -238,6 +261,13 @@ export function ProjectMap() {
     estimateSize: () => ROW_HEIGHT,
     overscan: 16,
   });
+
+  useEffect(() => {
+    if (target?.path && selected?.path === target.path && view === "tree") {
+      const index = rows.findIndex((row) => row.node.path === selected.path);
+      if (index >= 0) virtualizer.scrollToIndex(index, { align: "center" });
+    }
+  }, [target, selected, rows, view, virtualizer]);
 
   const activate = useCallback(
     (node: ProjectNode) => {
@@ -328,7 +358,14 @@ export function ProjectMap() {
         description={`${context.analysis.totalFiles} files scanned from the selected project`}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] overflow-hidden">
+      <Tabs value={view} onValueChange={(value) => setView(value as MapView)} className="border-b border-border px-6 py-2">
+        <TabsList aria-label="Project map views">
+          <TabsTrigger value="tree">File Tree</TabsTrigger>
+          <TabsTrigger value="graph">Graph</TabsTrigger>
+          <TabsTrigger value="insights">Insights</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <div className={cn("grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] overflow-hidden", view !== "tree" && "hidden")}>
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-border">
           <div className="border-b border-border px-6 py-3">
             <div className="relative">
@@ -459,6 +496,7 @@ export function ProjectMap() {
           )}
         </aside>
       </div>
+      {view !== "tree" ? <Suspense fallback={<p className="p-6 text-muted-foreground">Loading code intelligence…</p>}><IntelligencePane context={context} mode={view} /></Suspense> : null}
     </div>
   );
 }

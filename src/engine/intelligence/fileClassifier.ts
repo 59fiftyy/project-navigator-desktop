@@ -35,11 +35,11 @@ const configurationFiles = [
 function classifyFile(file: ProjectFile): ClassifiedFile {
   const documentationPurpose = documentationFiles[file.name];
 
-  if (documentationPurpose) {
+  if (documentationPurpose || file.extension.toLowerCase() === "md") {
     return {
       ...file,
       category: "documentation",
-      purpose: documentationPurpose,
+      purpose: documentationPurpose ?? "Project document",
     };
   }
 

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { ProjectContext } from "@/engine";
 import { useProject } from "@/app/projectStore";
 import { resolveDocuments, targetPath } from "@/app/documentation";
-import { appendTask, parseTasks, toggleTask } from "@/app/dashboardInsights";
+import { appendTask, parseTasks, toggleTask, taskWindow } from "@/app/dashboardInsights";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Panel } from "./Panel";
@@ -20,6 +20,7 @@ export function TasksPanel({
   const { writeProjectFile } = useProject();
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   const roadmap = useMemo(
     () => resolveDocuments(context).find((doc) => doc.section.id === "roadmap"),
@@ -27,8 +28,7 @@ export function TasksPanel({
   );
   const content = roadmap?.content ?? null;
   const tasks = useMemo(() => (content ? parseTasks(content) : []), [content]);
-  const done = tasks.filter((t) => t.done).length;
-  const open = tasks.filter((t) => !t.done).slice(0, 6);
+  const { done, open, visible } = taskWindow(tasks, expanded);
 
   const toggle = async (line: number) => {
     if (!roadmap?.path || content === null || busy) return;
@@ -95,7 +95,7 @@ export function TasksPanel({
   return (
     <Panel
       title="Tasks"
-      meta={tasks.length ? `${done}/${tasks.length}` : undefined}
+      meta={`${done} done / ${tasks.length} total`}
       action="Open roadmap"
       onAction={onOpenRoadmap}
     >
@@ -123,7 +123,7 @@ export function TasksPanel({
             <p className="text-sm text-muted-foreground">All tasks are done.</p>
           ) : (
             <ul className="space-y-0.5">
-              {open.map((task) => (
+              {visible.map((task) => (
                 <li key={task.line}>
                   <button
                     type="button"
@@ -148,6 +148,11 @@ export function TasksPanel({
               ))}
             </ul>
           )}
+          {open.length > 5 ? (
+            <Button size="sm" variant="ghost" onClick={() => setExpanded((value) => !value)}>
+              {expanded ? "Show less" : `View all (${open.length})`}
+            </Button>
+          ) : null}
           {addForm}
         </div>
       )}

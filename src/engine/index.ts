@@ -6,9 +6,10 @@ import { buildProjectContextBase, buildProjectContext } from "./context/projectC
 import { understandProject } from "./understanding/projectUnderstanding";
 import type { ProjectFileSystem } from "../platform/projectFileSystem";
 import type { ProjectContext } from "./context/types";
+import { scanCodeIntelligence } from "./dependencies/dependencyScanner";
 
 export type EngineStage =
-  "scan" | "analyze" | "classify" | "knowledge" | "context" | "understand" | "done";
+  "scan" | "analyze" | "classify" | "knowledge" | "context" | "understand" | "dependencies" | "done";
 
 export const ENGINE_STAGES: { id: EngineStage; label: string }[] = [
   { id: "scan", label: "Scanning project" },
@@ -17,6 +18,7 @@ export const ENGINE_STAGES: { id: EngineStage; label: string }[] = [
   { id: "knowledge", label: "Reading documentation" },
   { id: "context", label: "Building project context" },
   { id: "understand", label: "Understanding the project" },
+  { id: "dependencies", label: "Analyzing code dependencies" },
 ];
 
 export interface LoadProjectOptions {
@@ -61,6 +63,8 @@ export async function loadProject(
 
   // 7. Build complete project context
   const context = buildProjectContext(baseContext, understanding);
+  stage("dependencies");
+  context.codeIntelligence = await scanCodeIntelligence(project, fs);
 
   stage("done");
 

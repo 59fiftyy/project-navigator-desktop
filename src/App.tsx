@@ -17,6 +17,7 @@ import { NotesScreen } from "@/ui/screens/NotesScreen";
 import { SettingsScreen } from "@/ui/screens/SettingsScreen";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import type { MapTarget } from "@/app/mapNavigation";
 
 /**
  * Keep-alive pane: a screen mounts the first time it is visited and stays
@@ -48,6 +49,7 @@ function Shell() {
   const { status, context } = useProject();
   const [section, setSection] = useState<SectionId>("dashboard");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [mapTarget, setMapTarget] = useState<MapTarget>();
   const [mounted, setMounted] = useState<ReadonlySet<SectionId>>(
     () => new Set<SectionId>(["dashboard"]),
   );
@@ -97,10 +99,10 @@ function Shell() {
 
         <main className="min-w-0 flex-1 overflow-hidden">
           <Pane active={section === "dashboard"} mounted={mounted.has("dashboard")}>
-            <Dashboard onNavigate={navigate} />
+            <Dashboard onNavigate={navigate} onOpenMap={(target) => { setMapTarget(target); navigate("map"); }} />
           </Pane>
           <Pane active={section === "map"} mounted={mounted.has("map")}>
-            <ProjectMap />
+            <ProjectMap target={mapTarget} />
           </Pane>
           <Pane active={section === "docs"} mounted={mounted.has("docs")}>
             <DocumentationScreen />
