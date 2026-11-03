@@ -96,14 +96,15 @@ export function documentationDirectory(context: ProjectContext): string {
 export function resolveDocuments(context: ProjectContext): ResolvedDocument[] {
   const root = context.project.path.replace(/[\\/]+$/, "");
 
-  return DOCUMENTATION_SECTIONS.map((section) => {
+  const normalize = (path: string) => path.replace(/\\/g, "/");
+  const predefined = DOCUMENTATION_SECTIONS.map((section) => {
     const candidates = context.knowledge.documentation.files.filter(
       (file) => file.name.toLowerCase() === section.fileName.toLowerCase(),
     );
 
     // Prefer the project-root copy (matters for README.md), then the shortest path.
     const match =
-      candidates.find((file) => file.path === `${root}/${section.fileName}`) ??
+      candidates.find((file) => normalize(file.path).toLowerCase() === `${normalize(root)}/${section.fileName}`.toLowerCase()) ??
       [...candidates].sort((a, b) => a.path.length - b.path.length)[0];
 
     return {
@@ -111,7 +112,24 @@ export function resolveDocuments(context: ProjectContext): ResolvedDocument[] {
       path: match?.path ?? null,
       content: match?.content ?? null,
     };
-  }).sort(
+  });
+  const used = new Set(predefined.flatMap((doc) => doc.path ? [normalize(doc.path)] : []));
+  const atlas = `${normalize(documentationDirectory(context))}/`;
+  const custom: ResolvedDocument[] = context.knowledge.documentation.files
+    .filter((file) => normalize(file.path).startsWith(atlas) && /\.md$/i.test(file.name) && !used.has(normalize(file.path)))
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map((file) => ({
+      section: {
+        id: `custom:${normalize(file.path)}`,
+        label: file.name.replace(/\.md$/i, ""),
+        fileName: file.name,
+        description: "Project document",
+        template: `# ${file.name.replace(/\.md$/i, "")}\n\n`,
+      },
+      path: file.path,
+      content: file.content,
+    }));
+  return [...predefined, ...custom].sort(
     (a, b) => documentSortWeight(a.section.fileName) - documentSortWeight(b.section.fileName),
   );
 }

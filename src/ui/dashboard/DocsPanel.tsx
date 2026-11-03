@@ -91,25 +91,16 @@ export function DocsPanel({
 
   const cards = useMemo<Card[]>(() => {
     const known = resolveDocuments(context);
-    const knownNames = new Set(known.map((d) => d.section.fileName.toLowerCase()));
-    const dir = documentationDirectory(context).replace(/\\/g, "/");
-    const extra = context.project.files.filter(
-      (f) =>
-        f.path.replace(/\\/g, "/").startsWith(`${dir}/`) &&
-        f.name.toLowerCase().endsWith(".md") &&
-        !knownNames.has(f.name.toLowerCase()),
-    );
     return [
       ...known.map((doc) => ({
         key: doc.section.id,
         name: doc.section.fileName,
-        description: doc.section.description,
-        icon: SECTION_ICONS[doc.section.id] ?? FileText,
+        description: SECTION_ICONS[doc.section.id] ? doc.section.description : customMeta(doc.section.fileName).description,
+        icon: SECTION_ICONS[doc.section.id] ?? customMeta(doc.section.fileName).icon,
         missing: doc.path === null,
         onCreate: () =>
           void write(targetPath(context, doc), doc.section.template, doc.section.fileName),
       })),
-      ...extra.map((f) => ({ key: f.path, name: f.name, missing: false, ...customMeta(f.name) })),
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context]);
