@@ -112,10 +112,10 @@ export function MapPreview({
                           event.preventDefault();
                           if (onFolder) {
                             onFolder(
-                                node.label === "(root)"
-                                  ? context.project.path
-                                  : `${context.project.path}/${node.label}`,
-                              );
+                              node.label === "(root)"
+                                ? context.project.path
+                                : `${context.project.path}/${node.label}`,
+                            );
                           } else {
                             onOpen();
                           }

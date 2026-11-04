@@ -196,14 +196,12 @@ export async function scanCodeIntelligence(
     outgoing.set(edge.source, (outgoing.get(edge.source) ?? 0) + 1);
   }
   return {
-    nodes: internal
-      .sort()
-      .map((path) => ({
-        path,
-        incoming: incoming.get(path) ?? 0,
-        outgoing: outgoing.get(path) ?? 0,
-        entryPoint: isEntry(path),
-      })),
+    nodes: internal.sort().map((path) => ({
+      path,
+      incoming: incoming.get(path) ?? 0,
+      outgoing: outgoing.get(path) ?? 0,
+      entryPoint: isEntry(path),
+    })),
     edges: sortedEdges,
     issues: issues.sort(
       (a, b) => a.path.localeCompare(b.path) || a.specifier.localeCompare(b.specifier),
