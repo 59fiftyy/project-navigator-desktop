@@ -54,8 +54,7 @@
   --color-signal: var(--signal);
   --color-hover: var(--hover);
   --color-selected: var(--selected);
-  --font-sans:
-    "Plus Jakarta Sans Variable", "Heebo Variable", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", "Heebo Variable", "Segoe UI", system-ui, sans-serif;
   --font-mono: "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -225,18 +224,20 @@
 }
 
 /* React Flow is themed exclusively through Atlas tokens. */
-.react-flow {
-  --xy-background-color-default: var(--background);
-  --xy-edge-stroke-default: var(--border);
-  --xy-edge-stroke-selected-default: var(--signal);
-  --xy-connectionline-stroke-default: var(--signal);
-  --xy-handle-background-color-default: var(--muted-foreground);
-  --xy-handle-border-color-default: var(--surface);
-  --xy-controls-button-background-color-default: var(--surface-raised);
-  --xy-controls-button-background-color-hover-default: var(--hover);
-  --xy-controls-button-color-default: var(--foreground);
-  --xy-controls-button-border-color-default: var(--border);
-  --xy-controls-box-shadow-default: none;
-  --xy-background-pattern-dots-color-default: var(--border);
+.react-flow.react-flow {
+  --xy-background-color: var(--background);
+  --xy-edge-stroke: var(--border);
+  --xy-edge-stroke-selected: var(--signal);
+  --xy-connectionline-stroke: var(--signal);
+  --xy-handle-background-color: var(--muted-foreground);
+  --xy-handle-border-color: var(--surface);
+  --xy-controls-button-background-color: var(--surface-raised);
+  --xy-controls-button-background-color-hover: var(--hover);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-controls-box-shadow: none;
+  --xy-background-pattern-dots-color: var(--border);
 }
-.react-flow__edge.atlas-edge-highlighted .react-flow__edge-path { stroke: var(--signal); }
+.react-flow__edge.atlas-edge-highlighted .react-flow__edge-path {
+  stroke: var(--signal);
+}

@@ -104,8 +104,11 @@ export function resolveDocuments(context: ProjectContext): ResolvedDocument[] {
 
     // Prefer the project-root copy (matters for README.md), then the shortest path.
     const match =
-      candidates.find((file) => normalize(file.path).toLowerCase() === `${normalize(root)}/${section.fileName}`.toLowerCase()) ??
-      [...candidates].sort((a, b) => a.path.length - b.path.length)[0];
+      candidates.find(
+        (file) =>
+          normalize(file.path).toLowerCase() ===
+          `${normalize(root)}/${section.fileName}`.toLowerCase(),
+      ) ?? [...candidates].sort((a, b) => a.path.length - b.path.length)[0];
 
     return {
       section,
@@ -113,10 +116,15 @@ export function resolveDocuments(context: ProjectContext): ResolvedDocument[] {
       content: match?.content ?? null,
     };
   });
-  const used = new Set(predefined.flatMap((doc) => doc.path ? [normalize(doc.path)] : []));
+  const used = new Set(predefined.flatMap((doc) => (doc.path ? [normalize(doc.path)] : [])));
   const atlas = `${normalize(documentationDirectory(context))}/`;
   const custom: ResolvedDocument[] = context.knowledge.documentation.files
-    .filter((file) => normalize(file.path).startsWith(atlas) && /\.md$/i.test(file.name) && !used.has(normalize(file.path)))
+    .filter(
+      (file) =>
+        normalize(file.path).startsWith(atlas) &&
+        /\.md$/i.test(file.name) &&
+        !used.has(normalize(file.path)),
+    )
     .sort((a, b) => a.path.localeCompare(b.path))
     .map((file) => ({
       section: {

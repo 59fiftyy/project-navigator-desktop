@@ -78,7 +78,13 @@ function Panel({
   );
 }
 
-export function Dashboard({ onNavigate, onOpenMap }: { onNavigate?: (section: SectionId) => void; onOpenMap?: (target: MapTarget) => void }) {
+export function Dashboard({
+  onNavigate,
+  onOpenMap,
+}: {
+  onNavigate?: (section: SectionId) => void;
+  onOpenMap?: (target: MapTarget) => void;
+}) {
   const { context, reanalyze } = useProject();
   const files = context?.project.files;
   const languages = useMemo(() => detectLanguages(files ?? []), [files]);
@@ -117,7 +123,11 @@ export function Dashboard({ onNavigate, onOpenMap }: { onNavigate?: (section: Se
             icon={Code2}
             label="Lines of code / Languages"
             value={`${lines === undefined ? "—" : `${context.codeIntelligence?.unreadableSourceFiles ? "≥ " : ""}${lines.toLocaleString()}`} / ${languages.length}`}
-            hint={context.codeIntelligence?.unreadableSourceFiles ? `${context.codeIntelligence.unreadableSourceFiles} unreadable files · partial count` : languages.slice(0, 4).join(", ") || undefined}
+            hint={
+              context.codeIntelligence?.unreadableSourceFiles
+                ? `${context.codeIntelligence.unreadableSourceFiles} unreadable files · partial count`
+                : languages.slice(0, 4).join(", ") || undefined
+            }
           />
           <Stat
             icon={Cpu}
@@ -128,7 +138,12 @@ export function Dashboard({ onNavigate, onOpenMap }: { onNavigate?: (section: Se
         </div>
 
         <div className="grid items-start gap-4 lg:grid-cols-2">
-          <MapPreview context={context} onOpen={() => onOpenMap ? onOpenMap({ view: "tree" }) : onNavigate?.("map")} onGraph={() => onOpenMap?.({ view: "graph" })} onFolder={(path) => onOpenMap?.({ view: "tree", path })} />
+          <MapPreview
+            context={context}
+            onOpen={() => (onOpenMap ? onOpenMap({ view: "tree" }) : onNavigate?.("map"))}
+            onGraph={() => onOpenMap?.({ view: "graph" })}
+            onFolder={(path) => onOpenMap?.({ view: "tree", path })}
+          />
           <TasksPanel context={context} onOpenRoadmap={() => onNavigate?.("roadmap")} />
         </div>
 

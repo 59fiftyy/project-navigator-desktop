@@ -22,15 +22,17 @@ describe("documentation rules", () => {
   it("creates new docs in the Atlas folder, README at the root", () => {
     const ctx = context([]);
     const docs = resolveDocuments(ctx);
-    const vision = docs.find((d) => d.section.id === "vision")!;
-    const readme = docs.find((d) => d.section.id === "readme")!;
+    const vision = docs.find((d) => d.section.id === "vision");
+    const readme = docs.find((d) => d.section.id === "readme");
+    if (!vision || !readme) throw new Error("Missing documentation section");
     expect(targetPath(ctx, vision)).toBe("/p/Atlas/Vision.md");
     expect(targetPath(ctx, readme)).toBe("/p/README.md");
   });
 
   it("keeps an existing doc where it is", () => {
     const ctx = context([{ path: "/p/docs/Vision.md", name: "Vision.md", content: "x" }]);
-    const vision = resolveDocuments(ctx).find((d) => d.section.id === "vision")!;
+    const vision = resolveDocuments(ctx).find((d) => d.section.id === "vision");
+    if (!vision) throw new Error("Missing vision section");
     expect(targetPath(ctx, vision)).toBe("/p/docs/Vision.md");
   });
 });
