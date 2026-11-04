@@ -9,11 +9,21 @@ import {
   parseTasks,
   toggleTask,
   topLevelFolders,
+  taskWindow,
 } from "./dashboardInsights";
 
 const md = "# Now\n- [ ] Build map\n- [x] Theme\n- Plain item\n```\n- not a task\n```\n";
 
 describe("dashboard tasks", () => {
+  it("shows five open tasks by default, all on expansion, with done and total kept", () => {
+    const tasks = parseTasks(Array.from({ length: 9 }, (_, i) => `- [${i === 8 ? "x" : " "}] Task ${i + 1}`).join("\n"));
+    const collapsed = taskWindow(tasks, false);
+    expect(collapsed.visible.map((task) => task.text)).toEqual(["Task 1", "Task 2", "Task 3", "Task 4", "Task 5"]);
+    expect(collapsed.done).toBe(1);
+    expect(collapsed.total).toBe(9);
+    expect(taskWindow(tasks, true).visible).toHaveLength(8);
+    expect(taskWindow([], false)).toEqual({ done: 0, total: 0, open: [], visible: [] });
+  });
   it("reads open and done checklist items, plain bullets as open", () => {
     const tasks = parseTasks(md);
     expect(tasks.map((t) => [t.text, t.done])).toEqual([
