@@ -235,8 +235,15 @@ export function ProjectMap({ target }: { target?: MapTarget | undefined }) {
     const ancestors = new Set<string>();
     let found: ProjectNode | null = null;
     const visit = (node: ProjectNode): boolean => {
-      if (node.path.replace(/\\/g, "/") === normalized) { found = node; return true; }
-      for (const child of node.children) if (visit(child)) { ancestors.add(node.path); return true; }
+      if (node.path.replace(/\\/g, "/") === normalized) {
+        found = node;
+        return true;
+      }
+      for (const child of node.children)
+        if (visit(child)) {
+          ancestors.add(node.path);
+          return true;
+        }
       return false;
     };
     visit(sortedRoot);
@@ -358,14 +365,23 @@ export function ProjectMap({ target }: { target?: MapTarget | undefined }) {
         description={`${context.analysis.totalFiles} files scanned from the selected project`}
       />
 
-      <Tabs value={view} onValueChange={(value) => setView(value as MapView)} className="border-b border-border px-6 py-2">
+      <Tabs
+        value={view}
+        onValueChange={(value) => setView(value as MapView)}
+        className="border-b border-border px-6 py-2"
+      >
         <TabsList aria-label="Project map views">
           <TabsTrigger value="tree">File Tree</TabsTrigger>
           <TabsTrigger value="graph">Graph</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className={cn("grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] overflow-hidden", view !== "tree" && "hidden")}>
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] overflow-hidden",
+          view !== "tree" && "hidden",
+        )}
+      >
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-border">
           <div className="border-b border-border px-6 py-3">
             <div className="relative">
@@ -496,7 +512,13 @@ export function ProjectMap({ target }: { target?: MapTarget | undefined }) {
           )}
         </aside>
       </div>
-      {view !== "tree" ? <Suspense fallback={<p className="p-6 text-muted-foreground">Loading code intelligence…</p>}><IntelligencePane context={context} mode={view} /></Suspense> : null}
+      {view !== "tree" ? (
+        <Suspense
+          fallback={<p className="p-6 text-muted-foreground">Loading code intelligence…</p>}
+        >
+          <IntelligencePane context={context} mode={view} />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

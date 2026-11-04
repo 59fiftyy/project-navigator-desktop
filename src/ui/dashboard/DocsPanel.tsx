@@ -95,7 +95,9 @@ export function DocsPanel({
       ...known.map((doc) => ({
         key: doc.section.id,
         name: doc.section.fileName,
-        description: SECTION_ICONS[doc.section.id] ? doc.section.description : customMeta(doc.section.fileName).description,
+        description: SECTION_ICONS[doc.section.id]
+          ? doc.section.description
+          : customMeta(doc.section.fileName).description,
         icon: SECTION_ICONS[doc.section.id] ?? customMeta(doc.section.fileName).icon,
         missing: doc.path === null,
         onCreate: () =>

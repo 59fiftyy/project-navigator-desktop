@@ -54,8 +54,7 @@
   --color-signal: var(--signal);
   --color-hover: var(--hover);
   --color-selected: var(--selected);
-  --font-sans:
-    "Plus Jakarta Sans Variable", "Heebo Variable", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans Variable", "Heebo Variable", "Segoe UI", system-ui, sans-serif;
   --font-mono: "Cascadia Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -239,4 +238,6 @@
   --xy-controls-box-shadow-default: none;
   --xy-background-pattern-dots-color-default: var(--border);
 }
-.react-flow__edge.atlas-edge-highlighted .react-flow__edge-path { stroke: var(--signal); }
+.react-flow__edge.atlas-edge-highlighted .react-flow__edge-path {
+  stroke: var(--signal);
+}

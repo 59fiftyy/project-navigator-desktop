@@ -9,10 +9,12 @@ self.onmessage = (event: MessageEvent<{ paths: string[]; edges: DependencyEdge[]
     for (const path of event.data.paths) graph.setNode(path, { width: 220, height: 54 });
     for (const edge of event.data.edges) graph.setEdge(edge.source, edge.target);
     dagre.layout(graph);
-    self.postMessage({ positions: event.data.paths.map((path) => {
-      const node = graph.node(path);
-      return { path, x: node.x - 110, y: node.y - 27 };
-    }) });
+    self.postMessage({
+      positions: event.data.paths.map((path) => {
+        const node = graph.node(path);
+        return { path, x: node.x - 110, y: node.y - 27 };
+      }),
+    });
   } catch {
     self.postMessage({ error: "Could not arrange dependency graph." });
   }

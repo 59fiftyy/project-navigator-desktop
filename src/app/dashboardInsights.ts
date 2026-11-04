@@ -188,7 +188,12 @@ export function countLines(text: string): number {
 
 export function taskWindow(tasks: RoadmapTask[], expanded: boolean) {
   const open = tasks.filter((task) => !task.done);
-  return { done: tasks.length - open.length, total: tasks.length, open, visible: expanded ? open : open.slice(0, 5) };
+  return {
+    done: tasks.length - open.length,
+    total: tasks.length,
+    open,
+    visible: expanded ? open : open.slice(0, 5),
+  };
 }
 
 const FOLDER_ROLES: [RegExp, string][] = [

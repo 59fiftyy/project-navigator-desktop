@@ -9,7 +9,14 @@ import type { ProjectContext } from "./context/types";
 import { scanCodeIntelligence } from "./dependencies/dependencyScanner";
 
 export type EngineStage =
-  "scan" | "analyze" | "classify" | "knowledge" | "context" | "understand" | "dependencies" | "done";
+  | "scan"
+  | "analyze"
+  | "classify"
+  | "knowledge"
+  | "context"
+  | "understand"
+  | "dependencies"
+  | "done";
 
 export const ENGINE_STAGES: { id: EngineStage; label: string }[] = [
   { id: "scan", label: "Scanning project" },

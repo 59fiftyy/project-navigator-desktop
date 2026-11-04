@@ -15,9 +15,10 @@ export const normalizePath = (path: string) => {
 };
 
 const JS_SOURCE = /\.(?:[cm]?[jt]s|[jt]sx)$/i;
-const isEntry = (path: string) => /(?:^|\/)(?:main|index|app|entry|cli)\.[cm]?[jt]sx?$/i.test(path)
-  || /(?:^|\/)(?:pages|routes|tests?|__tests__|e2e|scripts)\//i.test(path)
-  || /(?:\.config\.|\.(?:test|spec)\.|\.d\.[cm]?ts$)/i.test(path);
+const isEntry = (path: string) =>
+  /(?:^|\/)(?:main|index|app|entry|cli)\.[cm]?[jt]sx?$/i.test(path) ||
+  /(?:^|\/)(?:pages|routes|tests?|__tests__|e2e|scripts)\//i.test(path) ||
+  /(?:\.config\.|\.(?:test|spec)\.|\.d\.[cm]?ts$)/i.test(path);
 
 /** Static imports, re-exports, require and literal import(); no regex parsing of code. */
 export function extractImports(path: string, text: string) {
@@ -25,18 +26,36 @@ export function extractImports(path: string, text: string) {
   const specifiers = new Set<string>();
   let dynamic = false;
   const visit = (node: ts.Node) => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteralLike(node.moduleSpecifier)
+    ) {
       specifiers.add(node.moduleSpecifier.text);
     }
-    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression && ts.isStringLiteralLike(node.moduleReference.expression)) {
+    if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference) &&
+      node.moduleReference.expression &&
+      ts.isStringLiteralLike(node.moduleReference.expression)
+    ) {
       specifiers.add(node.moduleReference.expression.text);
     }
-    if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === "require"))) {
+    if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === "require"))
+    ) {
       const argument = node.arguments[0];
       if (argument && ts.isStringLiteralLike(argument)) specifiers.add(argument.text);
       else dynamic = true;
     }
-    if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteralLike(node.argument.literal)) specifiers.add(node.argument.literal.text);
+    if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      ts.isStringLiteralLike(node.argument.literal)
+    )
+      specifiers.add(node.argument.literal.text);
     ts.forEachChild(node, visit);
   };
   visit(source);
@@ -44,13 +63,22 @@ export function extractImports(path: string, text: string) {
 }
 
 /** One bounded source-read pass per explicit analysis, also producing deterministic LOC. */
-export async function scanCodeIntelligence(project: ProjectInfo, fs: ProjectFileSystem): Promise<CodeIntelligence> {
+export async function scanCodeIntelligence(
+  project: ProjectInfo,
+  fs: ProjectFileSystem,
+): Promise<CodeIntelligence> {
   const paths = new Set(project.files.map((file) => normalizePath(file.path)));
   const root = normalizePath(project.path);
   const configTexts = new Map<string, string>();
-  const configurations = project.files.filter((file) => /^(?:tsconfig|jsconfig).*\.json$/i.test(file.name) || file.name === "package.json");
+  const configurations = project.files.filter(
+    (file) => /^(?:tsconfig|jsconfig).*\.json$/i.test(file.name) || file.name === "package.json",
+  );
   for (const file of configurations) {
-    try { configTexts.set(normalizePath(file.path), await fs.readFile(file.path)); } catch { /* optional config */ }
+    try {
+      configTexts.set(normalizePath(file.path), await fs.readFile(file.path));
+    } catch {
+      /* optional config */
+    }
   }
   const host: ts.ModuleResolutionHost = {
     fileExists: (path) => paths.has(normalizePath(path)),
@@ -68,21 +96,37 @@ export async function scanCodeIntelligence(project: ProjectInfo, fs: ProjectFile
       directory = parent;
     }
   }
-  const defaults: ts.CompilerOptions = { allowJs: true, moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext };
-  const configs = [...configTexts].filter(([path]) => /\/(?:tsconfig|jsconfig)\.json$/i.test(path)).map(([path, text]) => {
-    const directory = path.slice(0, path.lastIndexOf("/"));
-    const json = ts.parseConfigFileTextToJson(path, text);
-    const parsed = ts.parseJsonConfigFileContent(json.config ?? {}, {
-      useCaseSensitiveFileNames: true,
-      fileExists: host.fileExists,
-      readFile: host.readFile,
-      readDirectory: () => [],
-    }, directory, defaults, path);
-    return { directory, options: parsed.options };
-  }).sort((a, b) => b.directory.length - a.directory.length);
-  const optionsFor = (path: string) => configs.find((config) => path.startsWith(`${config.directory}/`))?.options ?? defaults;
+  const defaults: ts.CompilerOptions = {
+    allowJs: true,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    module: ts.ModuleKind.ESNext,
+  };
+  const configs = [...configTexts]
+    .filter(([path]) => /\/(?:tsconfig|jsconfig)\.json$/i.test(path))
+    .map(([path, text]) => {
+      const directory = path.slice(0, path.lastIndexOf("/"));
+      const json = ts.parseConfigFileTextToJson(path, text);
+      const parsed = ts.parseJsonConfigFileContent(
+        json.config ?? {},
+        {
+          useCaseSensitiveFileNames: true,
+          fileExists: host.fileExists,
+          readFile: host.readFile,
+          readDirectory: () => [],
+        },
+        directory,
+        defaults,
+        path,
+      );
+      return { directory, options: parsed.options };
+    })
+    .sort((a, b) => b.directory.length - a.directory.length);
+  const optionsFor = (path: string) =>
+    configs.find((config) => path.startsWith(`${config.directory}/`))?.options ?? defaults;
   const caches = new Map<ts.CompilerOptions, ts.ModuleResolutionCache>();
-  const internal = project.files.filter((file) => JS_SOURCE.test(file.path)).map((file) => normalizePath(file.path));
+  const internal = project.files
+    .filter((file) => JS_SOURCE.test(file.path))
+    .map((file) => normalizePath(file.path));
   const internalSet = new Set(internal);
   const edges = new Map<string, DependencyEdge>();
   const issues: DependencyIssue[] = [];
@@ -96,8 +140,9 @@ export async function scanCodeIntelligence(project: ProjectInfo, fs: ProjectFile
       if (!file) break;
       const path = normalizePath(file.path);
       let text: string;
-      try { text = await fs.readFile(file.path); }
-      catch {
+      try {
+        text = await fs.readFile(file.path);
+      } catch {
         unreadableSourceFiles++;
         issues.push({ path, specifier: "", kind: "unreadable" });
         continue;
@@ -109,12 +154,29 @@ export async function scanCodeIntelligence(project: ProjectInfo, fs: ProjectFile
         if (imports.dynamic) issues.push({ path, specifier: "computed import", kind: "dynamic" });
         const options = optionsFor(path);
         let cache = caches.get(options);
-        if (!cache) { cache = ts.createModuleResolutionCache(root, (p) => p, options); caches.set(options, cache); }
+        if (!cache) {
+          cache = ts.createModuleResolutionCache(root, (p) => p, options);
+          caches.set(options, cache);
+        }
         for (const specifier of imports.specifiers) {
-          const resolved = ts.resolveModuleName(specifier, path, options, host, cache).resolvedModule;
+          const resolved = ts.resolveModuleName(
+            specifier,
+            path,
+            options,
+            host,
+            cache,
+          ).resolvedModule;
           const target = resolved ? normalizePath(resolved.resolvedFileName) : undefined;
-          if (target && internalSet.has(target)) edges.set(`${path}\0${target}`, { source: path, target });
-          else if (!resolved && (specifier.startsWith(".") || specifier.startsWith("/") || Object.keys(options.paths ?? {}).some((pattern) => specifier.startsWith(pattern.split("*")[0] ?? pattern)))) {
+          if (target && internalSet.has(target))
+            edges.set(`${path}\0${target}`, { source: path, target });
+          else if (
+            !resolved &&
+            (specifier.startsWith(".") ||
+              specifier.startsWith("/") ||
+              Object.keys(options.paths ?? {}).some((pattern) =>
+                specifier.startsWith(pattern.split("*")[0] ?? pattern),
+              ))
+          ) {
             issues.push({ path, specifier, kind: "unresolved" });
           }
         }
@@ -124,7 +186,9 @@ export async function scanCodeIntelligence(project: ProjectInfo, fs: ProjectFile
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
-  const sortedEdges = [...edges.values()].sort((a, b) => a.source.localeCompare(b.source) || a.target.localeCompare(b.target));
+  const sortedEdges = [...edges.values()].sort(
+    (a, b) => a.source.localeCompare(b.source) || a.target.localeCompare(b.target),
+  );
   const incoming = new Map<string, number>();
   const outgoing = new Map<string, number>();
   for (const edge of sortedEdges) {
@@ -132,9 +196,18 @@ export async function scanCodeIntelligence(project: ProjectInfo, fs: ProjectFile
     outgoing.set(edge.source, (outgoing.get(edge.source) ?? 0) + 1);
   }
   return {
-    nodes: internal.sort().map((path) => ({ path, incoming: incoming.get(path) ?? 0, outgoing: outgoing.get(path) ?? 0, entryPoint: isEntry(path) })),
+    nodes: internal
+      .sort()
+      .map((path) => ({
+        path,
+        incoming: incoming.get(path) ?? 0,
+        outgoing: outgoing.get(path) ?? 0,
+        entryPoint: isEntry(path),
+      })),
     edges: sortedEdges,
-    issues: issues.sort((a, b) => a.path.localeCompare(b.path) || a.specifier.localeCompare(b.specifier)),
+    issues: issues.sort(
+      (a, b) => a.path.localeCompare(b.path) || a.specifier.localeCompare(b.specifier),
+    ),
     unsupportedFiles: code.length - internal.length,
     linesOfCode,
     unreadableSourceFiles,
@@ -144,12 +217,16 @@ export async function scanCodeIntelligence(project: ProjectInfo, fs: ProjectFile
 /** Reverse dependency traversal: all files potentially affected by a change. */
 export function impactedFiles(edges: DependencyEdge[], path: string): Set<string> {
   const reverse = new Map<string, string[]>();
-  for (const edge of edges) reverse.set(edge.target, [...(reverse.get(edge.target) ?? []), edge.source]);
+  for (const edge of edges)
+    reverse.set(edge.target, [...(reverse.get(edge.target) ?? []), edge.source]);
   const seen = new Set([path]);
   const queue = [path];
   for (let index = 0; index < queue.length; index++) {
     for (const next of reverse.get(queue[index] ?? "") ?? []) {
-      if (!seen.has(next)) { seen.add(next); queue.push(next); }
+      if (!seen.has(next)) {
+        seen.add(next);
+        queue.push(next);
+      }
     }
   }
   seen.delete(path);
@@ -157,6 +234,10 @@ export function impactedFiles(edges: DependencyEdge[], path: string): Set<string
 }
 
 export function potentialOrphans(intelligence: CodeIntelligence) {
-  const unreadable = new Set(intelligence.issues.filter((issue) => issue.kind === "unreadable").map((issue) => issue.path));
-  return intelligence.nodes.filter((node) => node.incoming === 0 && !node.entryPoint && !unreadable.has(node.path));
+  const unreadable = new Set(
+    intelligence.issues.filter((issue) => issue.kind === "unreadable").map((issue) => issue.path),
+  );
+  return intelligence.nodes.filter(
+    (node) => node.incoming === 0 && !node.entryPoint && !unreadable.has(node.path),
+  );
 }

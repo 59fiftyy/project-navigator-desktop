@@ -9,7 +9,17 @@ import { potentialOrphans } from "@/engine/dependencies/dependencyScanner";
 const W = 520;
 const H = 260;
 
-export function MapPreview({ context, onOpen, onGraph, onFolder }: { context: ProjectContext; onOpen: () => void; onGraph?: () => void; onFolder?: (path: string) => void }) {
+export function MapPreview({
+  context,
+  onOpen,
+  onGraph,
+  onFolder,
+}: {
+  context: ProjectContext;
+  onOpen: () => void;
+  onGraph?: () => void;
+  onFolder?: (path: string) => void;
+}) {
   const { folders, more } = useMemo(
     () => topLevelFolders(context.project.path, context.project.files),
     [context.project.path, context.project.files],
@@ -83,8 +93,34 @@ export function MapPreview({ context, onOpen, onGraph, onFolder }: { context: Pr
                 role={clickable ? "button" : undefined}
                 aria-label={clickable ? `Open ${node.label} in the project map` : undefined}
                 tabIndex={clickable ? 0 : undefined}
-                onClick={clickable ? () => onFolder ? onFolder(node.label === "(root)" ? context.project.path : `${context.project.path}/${node.label}`) : onOpen() : undefined}
-                onKeyDown={clickable ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onFolder ? onFolder(node.label === "(root)" ? context.project.path : `${context.project.path}/${node.label}`) : onOpen(); } } : undefined}
+                onClick={
+                  clickable
+                    ? () =>
+                        onFolder
+                          ? onFolder(
+                              node.label === "(root)"
+                                ? context.project.path
+                                : `${context.project.path}/${node.label}`,
+                            )
+                          : onOpen()
+                    : undefined
+                }
+                onKeyDown={
+                  clickable
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onFolder
+                            ? onFolder(
+                                node.label === "(root)"
+                                  ? context.project.path
+                                  : `${context.project.path}/${node.label}`,
+                              )
+                            : onOpen();
+                        }
+                      }
+                    : undefined
+                }
                 className={clickable ? "cursor-pointer" : undefined}
               >
                 <circle
@@ -116,10 +152,17 @@ export function MapPreview({ context, onOpen, onGraph, onFolder }: { context: Pr
           })}
         </svg>
       )}
-      {context.codeIntelligence ? <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-        <p className="text-xs text-muted-foreground">{context.codeIntelligence.edges.length} connections · {potentialOrphans(context.codeIntelligence).length} potential orphans</p>
-        <Button size="sm" variant="ghost" onClick={onGraph}>View Graph</Button>
-      </div> : null}
+      {context.codeIntelligence ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+          <p className="text-xs text-muted-foreground">
+            {context.codeIntelligence.edges.length} connections ·{" "}
+            {potentialOrphans(context.codeIntelligence).length} potential orphans
+          </p>
+          <Button size="sm" variant="ghost" onClick={onGraph}>
+            View Graph
+          </Button>
+        </div>
+      ) : null}
     </Panel>
   );
 }
