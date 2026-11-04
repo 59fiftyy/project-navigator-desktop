@@ -13,6 +13,7 @@ import "@xyflow/react/dist/style.css";
 import type { CodeIntelligence } from "@/engine/dependencies/types";
 import { impactedFiles } from "@/engine/dependencies/graph";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/app/theme";
 
 type FileNode = Node<{
   label: string;
@@ -57,6 +58,7 @@ export default function DependencyGraph({
   onSelect: (path: string | null) => void;
   query: string;
 }) {
+  const { theme } = useTheme();
   const [positions, setPositions] = useState<Map<string, { x: number; y: number }> | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -136,6 +138,7 @@ export default function DependencyGraph({
     );
   return (
     <ReactFlow
+      colorMode={theme}
       key={intelligence.nodes.length}
       nodes={nodes}
       edges={edges}
