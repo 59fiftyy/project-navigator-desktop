@@ -11,7 +11,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { CodeIntelligence } from "@/engine/dependencies/types";
-import { impactedFiles } from "@/engine/dependencies/dependencyScanner";
+import { impactedFiles } from "@/engine/dependencies/graph";
 import { cn } from "@/lib/utils";
 
 type FileNode = Node<{

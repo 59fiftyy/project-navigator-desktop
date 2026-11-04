@@ -214,30 +214,4 @@ export async function scanCodeIntelligence(
   };
 }
 
-/** Reverse dependency traversal: all files potentially affected by a change. */
-export function impactedFiles(edges: DependencyEdge[], path: string): Set<string> {
-  const reverse = new Map<string, string[]>();
-  for (const edge of edges)
-    reverse.set(edge.target, [...(reverse.get(edge.target) ?? []), edge.source]);
-  const seen = new Set([path]);
-  const queue = [path];
-  for (let index = 0; index < queue.length; index++) {
-    for (const next of reverse.get(queue[index] ?? "") ?? []) {
-      if (!seen.has(next)) {
-        seen.add(next);
-        queue.push(next);
-      }
-    }
-  }
-  seen.delete(path);
-  return seen;
-}
-
-export function potentialOrphans(intelligence: CodeIntelligence) {
-  const unreadable = new Set(
-    intelligence.issues.filter((issue) => issue.kind === "unreadable").map((issue) => issue.path),
-  );
-  return intelligence.nodes.filter(
-    (node) => node.incoming === 0 && !node.entryPoint && !unreadable.has(node.path),
-  );
-}
+export { impactedFiles, potentialOrphans } from "./graph";

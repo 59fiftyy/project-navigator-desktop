@@ -4,7 +4,7 @@ import type { ProjectContext } from "@/engine";
 import { folderRole, topLevelFolders } from "@/app/dashboardInsights";
 import { Panel } from "./Panel";
 import { Button } from "@/components/ui/button";
-import { potentialOrphans } from "@/engine/dependencies/dependencyScanner";
+import { potentialOrphans } from "@/engine/dependencies/graph";
 
 const W = 520;
 const H = 260;
@@ -110,13 +110,15 @@ export function MapPreview({
                     ? (event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          onFolder
-                            ? onFolder(
+                          if (onFolder) {
+                            onFolder(
                                 node.label === "(root)"
                                   ? context.project.path
                                   : `${context.project.path}/${node.label}`,
-                              )
-                            : onOpen();
+                              );
+                          } else {
+                            onOpen();
+                          }
                         }
                       }
                     : undefined

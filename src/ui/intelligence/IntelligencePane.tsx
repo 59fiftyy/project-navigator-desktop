@@ -4,7 +4,7 @@ import { ExternalLink, FolderOpen, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { ProjectContext } from "@/engine";
 import type { DependencyNode } from "@/engine/dependencies/types";
-import { impactedFiles, potentialOrphans } from "@/engine/dependencies/dependencyScanner";
+import { impactedFiles, potentialOrphans } from "@/engine/dependencies/graph";
 import { relativePath } from "@/app/projectInsights";
 import { openPath, revealInFileManager } from "@/platform/desktopService";
 import { Button } from "@/components/ui/button";

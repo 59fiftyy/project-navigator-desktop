@@ -6,7 +6,6 @@ import { buildProjectContextBase, buildProjectContext } from "./context/projectC
 import { understandProject } from "./understanding/projectUnderstanding";
 import type { ProjectFileSystem } from "../platform/projectFileSystem";
 import type { ProjectContext } from "./context/types";
-import { scanCodeIntelligence } from "./dependencies/dependencyScanner";
 
 export type EngineStage =
   | "scan"
@@ -71,6 +70,7 @@ export async function loadProject(
   // 7. Build complete project context
   const context = buildProjectContext(baseContext, understanding);
   stage("dependencies");
+  const { scanCodeIntelligence } = await import("./dependencies/dependencyScanner");
   context.codeIntelligence = await scanCodeIntelligence(project, fs);
 
   stage("done");
