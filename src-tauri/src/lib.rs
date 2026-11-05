@@ -132,6 +132,22 @@ async fn write_file(path: String, content: String) -> Result<(), String> {
     .await
 }
 
+/// Deletes a single regular file. Directories are refused so a wrong path can
+/// never remove a folder tree.
+#[tauri::command]
+async fn delete_file(path: String) -> Result<(), String> {
+    blocking_task(move || {
+        let file_path = Path::new(&path);
+        let metadata =
+            fs::symlink_metadata(file_path).map_err(|error| format!("{path}: {error}"))?;
+        if !metadata.is_file() {
+            return Err(format!("Not a file: {path}"));
+        }
+        fs::remove_file(file_path).map_err(|error| format!("{path}: {error}"))
+    })
+    .await
+}
+
 /// Shows `path` in the operating system's file manager, off the main thread.
 #[tauri::command]
 async fn reveal_in_file_manager(path: String) -> Result<(), String> {
@@ -522,6 +538,7 @@ pub fn run() {
             scan_directory,
             read_file,
             write_file,
+            delete_file,
             reveal_in_file_manager,
             open_path,
             git_is_repository,

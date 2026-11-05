@@ -10,12 +10,25 @@ import { openPath } from "@/platform/desktopService";
 import { OPEN_DOC_EVENT } from "@/ui/layout/CommandPalette";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "missing";
 
 export function DocumentationScreen() {
-  const { context, desktop, writeProjectFile } = useProject();
+  const { context, desktop, writeProjectFile, deleteProjectFile } = useProject();
   const [activeId, setActiveId] = useState("vision");
   const [filter, setFilter] = useState<Filter>("all");
   const [draft, setDraft] = useState("");
@@ -111,6 +124,19 @@ export function DocumentationScreen() {
       toast.success(`Created ${active.section.fileName}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not create the document.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!active.path) return;
+    setBusy(true);
+    try {
+      await deleteProjectFile(active.path);
+      toast.success(`Deleted ${active.section.fileName}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete the document.");
     } finally {
       setBusy(false);
     }
@@ -216,6 +242,35 @@ export function DocumentationScreen() {
               <Button size="sm" disabled={!dirty || busy} onClick={() => void save()}>
                 Save
               </Button>
+            ) : null}
+            {active.path && active.content !== null ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={busy}>
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete {active.section.fileName}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure? This permanently removes{" "}
+                      <span className="font-mono">{relativePath(context, active.path)}</span> from
+                      your project folder. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className={buttonVariants({ variant: "destructive" })}
+                      onClick={() => void remove()}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             ) : null}
           </div>
         </div>

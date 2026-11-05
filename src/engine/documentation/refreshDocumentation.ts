@@ -30,13 +30,19 @@ export async function refreshProjectDocumentation(
   context: ProjectContext,
   fs: ProjectFileSystem,
   writtenPath?: string,
+  removedPath?: string,
 ): Promise<ProjectContext> {
   const isNewFile =
     writtenPath != null && !context.project.files.some((f) => f.path === writtenPath);
+  const isRemoved =
+    removedPath != null && context.project.files.some((f) => f.path === removedPath);
+  const changed = isNewFile || isRemoved;
 
   const files = isNewFile
     ? [...context.project.files, fileEntry(writtenPath)]
-    : context.project.files;
+    : isRemoved
+      ? context.project.files.filter((f) => f.path !== removedPath)
+      : context.project.files;
 
   const project = isNewFile
     ? {

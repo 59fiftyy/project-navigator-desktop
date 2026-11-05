@@ -80,7 +80,22 @@ export default function DependencyGraph({
       edges: intelligence.edges,
     });
     return () => worker.terminate();
-  }, [intelligence]);
+  }, [intelligence.nodes, intelligence.edges]);
+
+  const graphKey = useMemo(
+    () => `${intelligence.nodes.length}:${intelligence.edges.length}:${intelligence.nodes[0]?.path ?? ""}`,
+    [intelligence.nodes, intelligence.edges],
+  );
+  // Direct neighbours in both directions, so imports *and* importers glow.
+  const direct = useMemo(() => {
+    const set = new Set<string>();
+    if (!selected) return set;
+    for (const edge of intelligence.edges) {
+      if (edge.source === selected) set.add(edge.target);
+      if (edge.target === selected) set.add(edge.source);
+    }
+    return set;
+  }, [intelligence.edges, selected]);
 
   const affected = useMemo(
     () => (selected ? impactedFiles(intelligence.edges, selected) : new Set<string>()),
@@ -98,14 +113,17 @@ export default function DependencyGraph({
           ...node,
           label: node.path.split("/").pop() ?? node.path,
           core: node.incoming >= 3,
-          highlighted: affected.has(node.path),
+          highlighted: affected.has(node.path) || direct.has(node.path),
           dimmed: Boolean(
-            (selected && selected !== node.path && !affected.has(node.path)) ||
+            (selected &&
+              selected !== node.path &&
+              !affected.has(node.path) &&
+              !direct.has(node.path)) ||
             (query && !node.path.toLowerCase().includes(query.toLowerCase())),
           ),
         },
       })),
-    [intelligence.nodes, positions, selected, affected, query],
+    [intelligence.nodes, positions, selected, affected, direct, query],
   );
   const edges = useMemo(
     () =>
@@ -113,10 +131,12 @@ export default function DependencyGraph({
         ...edge,
         id: `${edge.source}\0${edge.target}`,
         markerEnd: { type: MarkerType.ArrowClosed },
+        animated: Boolean(selected && (edge.source === selected || edge.target === selected)),
         className:
           selected &&
-          (edge.target === selected || affected.has(edge.target)) &&
-          affected.has(edge.source)
+          (edge.source === selected ||
+            edge.target === selected ||
+            (affected.has(edge.source) && (edge.target === selected || affected.has(edge.target))))
             ? "atlas-edge-highlighted"
             : "",
       })),
@@ -139,7 +159,7 @@ export default function DependencyGraph({
   return (
     <ReactFlow
       colorMode={theme}
-      key={intelligence.nodes.length}
+      key={graphKey}
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
@@ -151,6 +171,7 @@ export default function DependencyGraph({
       onlyRenderVisibleElements
       nodesConnectable={false}
       nodesDraggable={false}
+      elementsSelectable={false}
       proOptions={{ hideAttribution: true }}
     >
       <Background />
