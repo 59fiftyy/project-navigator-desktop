@@ -8,4 +8,6 @@ export interface ProjectFileSystem {
   scanDirectory(path: string): Promise<string[]>;
   readFile(path: string): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;
+  /** Deletes a single file (never a directory). Optional for read-only runtimes. */
+  deleteFile?(path: string): Promise<void>;
 }

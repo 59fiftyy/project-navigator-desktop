@@ -12,6 +12,9 @@ export const tauriProjectFileSystem: ProjectFileSystem = {
   async writeFile(path: string, content: string): Promise<void> {
     await invoke("write_file", { path, content });
   },
+  async deleteFile(path: string): Promise<void> {
+    await invoke("delete_file", { path });
+  },
 };
 
 export async function chooseProjectDirectory(): Promise<string | null> {

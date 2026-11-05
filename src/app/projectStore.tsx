@@ -183,6 +183,21 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /** Deletes a project file and refreshes documentation context without a rescan. */
+  const deleteProjectFile = useCallback(async (path: string) => {
+    const fs = await getProjectFileSystem();
+    if (!fs.deleteFile) throw new Error(DESKTOP_ONLY_MESSAGE);
+    await fs.deleteFile(path);
+
+    const current = contextRef.current;
+    if (!current) return;
+    const name = path.split(/[\\/]/).pop() ?? path;
+    recordActivity(current.project.path, { kind: "doc", title: `Deleted ${name}` });
+
+    const refreshed = await refreshProjectDocumentation(current, fs, undefined, path);
+    if (contextRef.current === current) setContext(refreshed);
+  }, []);
+
   const clearProject = useCallback(async () => {
     runId.current++;
     await clearLastProjectPath();
