@@ -240,4 +240,6 @@
 }
 .react-flow__edge.atlas-edge-highlighted .react-flow__edge-path {
   stroke: var(--signal);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px var(--signal));
 }

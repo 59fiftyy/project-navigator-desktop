@@ -171,6 +171,7 @@ export default function DependencyGraph({
       onlyRenderVisibleElements
       nodesConnectable={false}
       nodesDraggable={false}
+      elementsSelectable={false}
       proOptions={{ hideAttribution: true }}
     >
       <Background />
