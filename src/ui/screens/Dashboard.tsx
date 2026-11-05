@@ -107,12 +107,6 @@ export function Dashboard({
       <ScreenHeader
         title={project.name}
         description={project.path}
-        actions={
-          <Button variant="outline" size="sm" onClick={() => void reanalyze()}>
-            <RotateCw className="size-4" />
-            Re-analyze
-          </Button>
-        }
       />
 
       <div className="space-y-6 px-8 py-6">

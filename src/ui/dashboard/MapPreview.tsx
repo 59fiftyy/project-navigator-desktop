@@ -1,14 +1,33 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronRight, File, Folder } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
-import type { ProjectContext } from "@/engine";
-import { folderRole, topLevelFolders } from "@/app/dashboardInsights";
-import { Panel } from "./Panel";
-import { Button } from "@/components/ui/button";
+import type { ProjectContext, ProjectNode } from "@/engine";
+import { folderRole } from "@/app/dashboardInsights";
 import { potentialOrphans } from "@/engine/dependencies/graph";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Panel } from "./Panel";
 
-const W = 520;
-const H = 260;
+const ROW = 26;
 
+type Row = { node: ProjectNode; depth: number; files: number };
+
+function fileCounts(node: ProjectNode, counts: Map<string, number>): number {
+  if (node.type === "file") return 1;
+  let total = 0;
+  for (const child of node.children) total += fileCounts(child, counts);
+  counts.set(node.path, total);
+  return total;
+}
+
+function sorted(children: ProjectNode[]): ProjectNode[] {
+  return [...children].sort((a, b) =>
+    a.type !== b.type ? (a.type === "directory" ? -1 : 1) : a.name.localeCompare(b.name),
+  );
+}
+
+/** Compact, virtualized file tree of the whole project for the Dashboard. */
 export function MapPreview({
   context,
   onOpen,
@@ -20,139 +39,109 @@ export function MapPreview({
   onGraph?: () => void;
   onFolder?: (path: string) => void;
 }) {
-  const { folders, more } = useMemo(
-    () => topLevelFolders(context.project.path, context.project.files),
-    [context.project.path, context.project.files],
-  );
+  const root = context.project.structure;
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const counts = useMemo(() => {
+    const map = new Map<string, number>();
+    fileCounts(root, map);
+    return map;
+  }, [root]);
 
-  const nodes = [
-    ...folders.map((f) => ({ label: f.name, count: f.count, role: folderRole(f.name) })),
-    ...(more ? [{ label: `+${more} more`, count: -1, role: null }] : []),
-  ];
-  const rootX = 70;
-  const rootY = H / 2;
-  const colX = 330;
-  const step = nodes.length > 1 ? (H - 40) / (nodes.length - 1) : 0;
+  const rows = useMemo(() => {
+    const out: Row[] = [];
+    const walk = (nodes: ProjectNode[], depth: number) => {
+      for (const node of sorted(nodes)) {
+        out.push({ node, depth, files: counts.get(node.path) ?? 1 });
+        if (node.type === "directory" && expanded.has(node.path)) walk(node.children, depth + 1);
+      }
+    };
+    walk(root.children, 0);
+    return out;
+  }, [root, expanded, counts]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW,
+    overscan: 10,
+  });
+
+  const toggle = (path: string) =>
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
 
   return (
     <Panel
       title="Project map"
-      meta={`${nodes.length} roots · largest highlighted`}
+      meta={`${context.analysis.totalFiles.toLocaleString()} files`}
       action="View full map"
       onAction={onOpen}
     >
-      {nodes.length === 0 ? (
+      <p className="mb-2 text-xs text-muted-foreground">
+        Click a folder to expand it. Double-click any item to open it in Project Map.
+      </p>
+      {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">No files scanned.</p>
       ) : (
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="h-auto w-full"
-          role="img"
-          aria-label="Project map preview"
-        >
-          {nodes.map((node, i) => {
-            const y = nodes.length > 1 ? 20 + i * step : rootY;
-            return (
-              <path
-                key={`e-${node.label}`}
-                d={`M ${rootX + 50} ${rootY} C ${rootX + 160} ${rootY}, ${colX - 110} ${y}, ${colX} ${y}`}
-                fill="none"
-                className={i === 0 ? "stroke-signal/70" : "stroke-border"}
-                strokeWidth={1.25}
-              />
-            );
-          })}
-
-          <g>
-            <rect
-              x={rootX - 50}
-              y={rootY - 16}
-              width={100}
-              height={32}
-              rx={6}
-              className="fill-surface-raised stroke-border"
-            />
-            <text
-              x={rootX}
-              y={rootY + 4}
-              textAnchor="middle"
-              className="fill-foreground text-[12px] font-medium"
-            >
-              {context.project.name.length > 14
-                ? `${context.project.name.slice(0, 13)}…`
-                : context.project.name}
-            </text>
-          </g>
-
-          {nodes.map((node, i) => {
-            const y = nodes.length > 1 ? 20 + i * step : rootY;
-            const clickable = node.count >= 0;
-            return (
-              <g
-                key={`n-${node.label}`}
-                role={clickable ? "button" : undefined}
-                aria-label={clickable ? `Open ${node.label} in the project map` : undefined}
-                tabIndex={clickable ? 0 : undefined}
-                onClick={
-                  clickable
-                    ? () =>
-                        onFolder
-                          ? onFolder(
-                              node.label === "(root)"
-                                ? context.project.path
-                                : `${context.project.path}/${node.label}`,
-                            )
-                          : onOpen()
-                    : undefined
-                }
-                onKeyDown={
-                  clickable
-                    ? (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          if (onFolder) {
-                            onFolder(
-                              node.label === "(root)"
-                                ? context.project.path
-                                : `${context.project.path}/${node.label}`,
-                            );
-                          } else {
-                            onOpen();
-                          }
-                        }
-                      }
-                    : undefined
-                }
-                className={clickable ? "cursor-pointer" : undefined}
-              >
-                <circle
-                  cx={colX}
-                  cy={y}
-                  r={3.5}
-                  className={i === 0 ? "fill-signal" : "fill-muted-foreground"}
-                />
-                <text x={colX + 12} y={y + 4} className="fill-foreground font-mono text-[11.5px]">
-                  {node.label.length > 16 ? `${node.label.slice(0, 15)}…` : node.label}
-                </text>
-                {node.role ? (
-                  <text x={colX + 150} y={y + 4} className="fill-muted-foreground text-[10.5px]">
-                    {node.role}
-                  </text>
-                ) : null}
-                {clickable ? (
-                  <text
-                    x={W - 8}
-                    y={y + 4}
-                    textAnchor="end"
-                    className="fill-muted-foreground text-[11px] tabular-nums"
-                  >
-                    {node.count.toLocaleString()}
-                  </text>
-                ) : null}
-              </g>
-            );
-          })}
-        </svg>
+        <div ref={scrollRef} className="h-64 overflow-auto overscroll-contain">
+          <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualizer.getVirtualItems().map((item) => {
+              const row = rows[item.index];
+              if (!row) return null;
+              const dir = row.node.type === "directory";
+              const open = expanded.has(row.node.path);
+              const role = dir && row.depth === 0 ? folderRole(row.node.name) : null;
+              return (
+                <button
+                  key={row.node.path}
+                  type="button"
+                  title={row.node.path}
+                  onClick={() => (dir ? toggle(row.node.path) : onFolder?.(row.node.path))}
+                  onDoubleClick={() => onFolder?.(row.node.path)}
+                  className={cn(
+                    "absolute left-0 top-0 flex w-full items-center gap-1.5 rounded px-2 text-left text-muted-foreground hover:bg-hover hover:text-foreground",
+                  )}
+                  style={{
+                    height: ROW,
+                    transform: `translateY(${item.start}px)`,
+                    paddingLeft: row.depth * 14 + 8,
+                  }}
+                >
+                  {dir ? (
+                    open ? (
+                      <ChevronDown className="size-3.5 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-3.5 shrink-0" />
+                    )
+                  ) : (
+                    <span className="w-3.5 shrink-0" />
+                  )}
+                  {dir ? (
+                    <Folder className="size-3.5 shrink-0 text-signal/80" />
+                  ) : (
+                    <File className="size-3.5 shrink-0" />
+                  )}
+                  <span className="truncate font-mono text-xs text-foreground">
+                    {row.node.name}
+                  </span>
+                  {role ? (
+                    <span className="shrink-0 text-[10.5px] text-muted-foreground">{role}</span>
+                  ) : null}
+                  {dir ? (
+                    <span className="ml-auto shrink-0 text-[11px] tabular-nums">
+                      {row.files.toLocaleString()}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
       {context.codeIntelligence ? (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
