@@ -42,6 +42,7 @@ interface ProjectState {
   openProject: (path: string) => Promise<void>;
   reanalyze: () => Promise<void>;
   writeProjectFile: (path: string, content: string) => Promise<void>;
+  deleteProjectFile: (path: string) => Promise<void>;
   clearProject: () => Promise<void>;
 }
 
@@ -223,6 +224,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       reanalyze,
       clearProject,
       writeProjectFile,
+      deleteProjectFile,
     }),
     [
       status,
@@ -237,6 +239,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       reanalyze,
       clearProject,
       writeProjectFile,
+      deleteProjectFile,
     ],
   );
 
