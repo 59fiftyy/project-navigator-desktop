@@ -15,6 +15,7 @@ import type { ProjectNode } from "@/engine";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/app/theme";
 import { cn } from "@/lib/utils";
+import { allDirectoryPaths } from "./structureModel";
 
 type StructureNode = Node<{
   label: string;
@@ -83,7 +84,7 @@ export default function StructureGraph({
   query: string;
 }) {
   const { theme } = useTheme();
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set([root.path]));
+  const [expanded, setExpanded] = useState<Set<string>>(() => allDirectoryPaths(root));
   const [positions, setPositions] = useState<Map<string, { x: number; y: number }> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,7 +94,7 @@ export default function StructureGraph({
     return map;
   }, [root]);
 
-  useEffect(() => setExpanded(new Set([root.path])), [root]);
+  useEffect(() => setExpanded(allDirectoryPaths(root)), [root]);
 
   const graph = useMemo(() => {
     const items: ProjectNode[] = [];
@@ -123,7 +124,7 @@ export default function StructureGraph({
         setPositions(new Map(event.data.positions.map(({ path, x, y }) => [path, { x, y }])));
     };
     worker.onerror = () => setError("Could not arrange the project structure.");
-    worker.postMessage({ paths: graph.items.map((item) => item.path), edges: graph.edges });
+    worker.postMessage({ paths: graph.items.map((item) => item.path), edges: graph.edges, hierarchy: true });
     return () => worker.terminate();
   }, [graph]);
 
@@ -173,14 +174,7 @@ export default function StructureGraph({
     });
 
   const expandAll = () => {
-    const all = new Set<string>();
-    const walk = (node: ProjectNode) => {
-      if (node.type !== "directory") return;
-      all.add(node.path);
-      node.children.forEach(walk);
-    };
-    walk(root);
-    setExpanded(all);
+    setExpanded(allDirectoryPaths(root));
   };
 
   if (error) return <p className="p-6 text-sm text-destructive">{error}</p>;

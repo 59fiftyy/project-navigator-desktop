@@ -229,8 +229,8 @@ export function DocumentationScreen() {
         className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-surface-raised px-10 py-8"
         onKeyDown={onKeyDown}
       >
-        <div className="flex items-baseline gap-3.5">
-          <h1 className="text-2xl font-semibold tracking-tight">{active.section.fileName}</h1>
+        <div className="flex flex-wrap items-baseline gap-3.5">
+          <h1 className="min-w-0 break-all text-2xl font-semibold">{active.section.fileName}</h1>
           <span className="text-muted-foreground">{active.section.description}</span>
           <div className="ml-auto flex gap-2">
             {active.path && desktop ? (
