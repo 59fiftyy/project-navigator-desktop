@@ -17,9 +17,9 @@ export function isHighlightedConnection(
 ): boolean {
   return Boolean(
     selected &&
-      (edge.source === selected ||
-        edge.target === selected ||
-        (affected.has(edge.source) && affected.has(edge.target))),
+    (edge.source === selected ||
+      edge.target === selected ||
+      (affected.has(edge.source) && affected.has(edge.target))),
   );
 }
 

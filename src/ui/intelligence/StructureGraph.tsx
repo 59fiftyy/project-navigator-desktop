@@ -41,10 +41,7 @@ function StructureGraphNode({ data }: NodeProps<StructureNode>) {
     >
       <Handle type="target" position={Position.Left} />
       <Icon
-        className={cn(
-          "size-4 shrink-0",
-          data.directory ? "text-signal" : "text-muted-foreground",
-        )}
+        className={cn("size-4 shrink-0", data.directory ? "text-signal" : "text-muted-foreground")}
       />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-mono text-xs text-foreground">{data.label}</span>
@@ -124,7 +121,11 @@ export default function StructureGraph({
         setPositions(new Map(event.data.positions.map(({ path, x, y }) => [path, { x, y }])));
     };
     worker.onerror = () => setError("Could not arrange the project structure.");
-    worker.postMessage({ paths: graph.items.map((item) => item.path), edges: graph.edges, hierarchy: true });
+    worker.postMessage({
+      paths: graph.items.map((item) => item.path),
+      edges: graph.edges,
+      hierarchy: true,
+    });
     return () => worker.terminate();
   }, [graph]);
 

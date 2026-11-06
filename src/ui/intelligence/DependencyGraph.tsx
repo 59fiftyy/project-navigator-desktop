@@ -11,7 +11,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { CodeIntelligence } from "@/engine/dependencies/types";
-import { directConnections, impactedFiles, isHighlightedConnection } from "@/engine/dependencies/graph";
+import {
+  directConnections,
+  impactedFiles,
+  isHighlightedConnection,
+} from "@/engine/dependencies/graph";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/app/theme";
 
@@ -89,7 +93,7 @@ export default function DependencyGraph({
   );
   // Direct neighbours in both directions, so imports *and* importers glow.
   const direct = useMemo(
-    () => selected ? directConnections(intelligence.edges, selected) : new Set<string>(),
+    () => (selected ? directConnections(intelligence.edges, selected) : new Set<string>()),
     [intelligence.edges, selected],
   );
 
@@ -129,10 +133,9 @@ export default function DependencyGraph({
         id: `${edge.source}\0${edge.target}`,
         markerEnd: { type: MarkerType.ArrowClosed },
         animated: Boolean(selected && (edge.source === selected || edge.target === selected)),
-        className:
-          isHighlightedConnection(edge, selected, affected)
-            ? "atlas-edge-highlighted"
-            : "",
+        className: isHighlightedConnection(edge, selected, affected)
+          ? "atlas-edge-highlighted"
+          : "",
       })),
     [intelligence.edges, selected, affected],
   );

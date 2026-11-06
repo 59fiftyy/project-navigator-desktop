@@ -2,7 +2,9 @@ import dagre from "@dagrejs/dagre";
 import type { DependencyEdge } from "@/engine/dependencies/types";
 import { hierarchyPositions } from "./structureModel";
 
-self.onmessage = (event: MessageEvent<{ paths: string[]; edges: DependencyEdge[]; hierarchy?: boolean }>) => {
+self.onmessage = (
+  event: MessageEvent<{ paths: string[]; edges: DependencyEdge[]; hierarchy?: boolean }>,
+) => {
   try {
     if (event.data.hierarchy) {
       self.postMessage({ positions: hierarchyPositions(event.data.paths, event.data.edges) });

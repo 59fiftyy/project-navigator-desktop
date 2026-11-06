@@ -55,9 +55,7 @@ export async function refreshProjectDocumentation(
       }
     : context.project;
 
-  const classifiedFiles = changed
-    ? classifyFiles(project.files)
-    : context.analysis.classifiedFiles;
+  const classifiedFiles = changed ? classifyFiles(project.files) : context.analysis.classifiedFiles;
   const analysis = changed ? analyzeProject(project, classifiedFiles) : context.analysis;
 
   const knowledge = await buildProjectKnowledge(project, classifiedFiles, fs);

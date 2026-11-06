@@ -151,11 +151,12 @@ export default function IntelligencePane({
           />
         </div>
         <span className="text-xs text-muted-foreground">
-          {intelligence?.nodes.length ?? 0} JS/TS files · {intelligence?.edges.length ?? 0} connections
+          {intelligence?.nodes.length ?? 0} JS/TS files · {intelligence?.edges.length ?? 0}{" "}
+          connections
         </span>
         <span className="text-xs text-muted-foreground">
-          {intelligence?.unsupportedFiles ?? 0} other-language files · {intelligence?.issues.length ?? 0}{" "}
-          analysis gaps
+          {intelligence?.unsupportedFiles ?? 0} other-language files ·{" "}
+          {intelligence?.issues.length ?? 0} analysis gaps
         </span>
       </div>
       {mode === "graph" ? (
@@ -175,8 +176,8 @@ export default function IntelligencePane({
       ) : (
         <p className="border-b border-border px-6 py-3 text-xs leading-relaxed text-muted-foreground">
           Insights help you identify widely used files and review files with no detected importers.
-          Select a file to see its direct relationships and which files might be affected by a change.
-          Results cover static JS/TS imports; analysis gaps are listed separately.
+          Select a file to see its direct relationships and which files might be affected by a
+          change. Results cover static JS/TS imports; analysis gaps are listed separately.
         </p>
       )}
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] max-lg:grid-cols-[minmax(0,1fr)_240px]">
@@ -184,13 +185,20 @@ export default function IntelligencePane({
           {mode === "graph" ? (
             <Suspense fallback={<p className="p-6 text-muted-foreground">Loading graph…</p>}>
               {fullStructure ? (
-                <StructureGraph root={context.project.structure} selected={selected} onSelect={setSelected} query={query} />
-              ) : intelligence ? <DependencyGraph
-                intelligence={intelligence}
-                selected={selected}
-                onSelect={setSelected}
-                query={query}
-              /> : null}
+                <StructureGraph
+                  root={context.project.structure}
+                  selected={selected}
+                  onSelect={setSelected}
+                  query={query}
+                />
+              ) : intelligence ? (
+                <DependencyGraph
+                  intelligence={intelligence}
+                  selected={selected}
+                  onSelect={setSelected}
+                  query={query}
+                />
+              ) : null}
             </Suspense>
           ) : (
             <>
@@ -222,7 +230,9 @@ export default function IntelligencePane({
         <aside className="min-h-0 overflow-auto border-l border-border bg-surface px-4 py-5">
           {!selected ? (
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {fullStructure ? "Select a file or folder to inspect its path. Folder connections show containment, not imports." : "Select a file in the graph or lists to inspect its imports, importers and potential change impact."}
+              {fullStructure
+                ? "Select a file or folder to inspect its path. Folder connections show containment, not imports."
+                : "Select a file in the graph or lists to inspect its imports, importers and potential change impact."}
             </p>
           ) : (
             <div className="space-y-5">
@@ -242,18 +252,24 @@ export default function IntelligencePane({
                   <FolderOpen className="size-4" />
                 </Button>
               </div>
-              {!fullStructure ? <div className="border-y border-border py-3">
-                <p className="text-xs text-muted-foreground">Potential change impact</p>
-                <p className="mt-1 text-xl font-semibold tabular-nums">{affected.size} files</p>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Files that depend on this file, directly or through other imports. This is a review scope, not a prediction that they will break.
-                </p>
-              </div> : null}
-              {(fullStructure ? [] : [
-                { title: "Imported by", paths: neighbors.incoming },
-                { title: "Imports", paths: neighbors.outgoing },
-                { title: "Affected files (transitive)", paths: [...affected] },
-              ]).map((list) => (
+              {!fullStructure ? (
+                <div className="border-y border-border py-3">
+                  <p className="text-xs text-muted-foreground">Potential change impact</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums">{affected.size} files</p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                    Files that depend on this file, directly or through other imports. This is a
+                    review scope, not a prediction that they will break.
+                  </p>
+                </div>
+              ) : null}
+              {(fullStructure
+                ? []
+                : [
+                    { title: "Imported by", paths: neighbors.incoming },
+                    { title: "Imports", paths: neighbors.outgoing },
+                    { title: "Affected files (transitive)", paths: [...affected] },
+                  ]
+              ).map((list) => (
                 <section key={list.title}>
                   <h3 className="mb-2 text-xs font-medium">
                     {list.title} · {list.paths.length}
