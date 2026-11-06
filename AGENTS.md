@@ -16,3 +16,5 @@
 - Code intelligence runs only in the canonical full engine pipeline through ProjectFileSystem; documentation refresh preserves its snapshot to avoid repeated source reads.
 - Dependency extraction uses the TypeScript parser and resolver for JS/TS and analyzed-project configuration; other languages and computed imports remain explicit coverage gaps, never definitive unused-code claims.
 - Dependency graph layout runs in a dedicated worker with Dagre; React Flow renders visible elements and the complete file tree remains independently virtualized to keep large projects usable.
+- Full structure graphs use the scanned ProjectNode tree and linear hierarchy layout in a worker, keeping containment distinct from dependency analysis and retaining every scanned file.
+- Documentation deletion goes through ProjectFileSystem to a single-file native command and incremental documentation refresh, never a recursive delete or full analysis.

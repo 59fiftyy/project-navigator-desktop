@@ -11,7 +11,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { CodeIntelligence } from "@/engine/dependencies/types";
-import { impactedFiles } from "@/engine/dependencies/graph";
+import {
+  directConnections,
+  impactedFiles,
+  isHighlightedConnection,
+} from "@/engine/dependencies/graph";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/app/theme";
 
@@ -23,16 +27,17 @@ type FileNode = Node<{
   core: boolean;
   highlighted: boolean;
   dimmed: boolean;
+  active: boolean;
 }>;
 
-function FileGraphNode({ data, selected }: NodeProps<FileNode>) {
+function FileGraphNode({ data }: NodeProps<FileNode>) {
   return (
     <div
       title={data.path}
       className={cn(
         "flex h-[54px] w-[220px] flex-col justify-center rounded-md border border-border bg-surface-raised px-3",
         data.core && "border-signal/60",
-        (selected || data.highlighted) && "border-signal bg-selected",
+        (data.active || data.highlighted) && "border-signal bg-selected",
         data.dimmed && "opacity-30",
       )}
     >
@@ -83,19 +88,14 @@ export default function DependencyGraph({
   }, [intelligence.nodes, intelligence.edges]);
 
   const graphKey = useMemo(
-    () => `${intelligence.nodes.length}:${intelligence.edges.length}:${intelligence.nodes[0]?.path ?? ""}`,
+    () => JSON.stringify([intelligence.nodes.map((node) => node.path), intelligence.edges]),
     [intelligence.nodes, intelligence.edges],
   );
   // Direct neighbours in both directions, so imports *and* importers glow.
-  const direct = useMemo(() => {
-    const set = new Set<string>();
-    if (!selected) return set;
-    for (const edge of intelligence.edges) {
-      if (edge.source === selected) set.add(edge.target);
-      if (edge.target === selected) set.add(edge.source);
-    }
-    return set;
-  }, [intelligence.edges, selected]);
+  const direct = useMemo(
+    () => (selected ? directConnections(intelligence.edges, selected) : new Set<string>()),
+    [intelligence.edges, selected],
+  );
 
   const affected = useMemo(
     () => (selected ? impactedFiles(intelligence.edges, selected) : new Set<string>()),
@@ -113,6 +113,7 @@ export default function DependencyGraph({
           ...node,
           label: node.path.split("/").pop() ?? node.path,
           core: node.incoming >= 3,
+          active: selected === node.path,
           highlighted: affected.has(node.path) || direct.has(node.path),
           dimmed: Boolean(
             (selected &&
@@ -132,13 +133,9 @@ export default function DependencyGraph({
         id: `${edge.source}\0${edge.target}`,
         markerEnd: { type: MarkerType.ArrowClosed },
         animated: Boolean(selected && (edge.source === selected || edge.target === selected)),
-        className:
-          selected &&
-          (edge.source === selected ||
-            edge.target === selected ||
-            (affected.has(edge.source) && (edge.target === selected || affected.has(edge.target))))
-            ? "atlas-edge-highlighted"
-            : "",
+        className: isHighlightedConnection(edge, selected, affected)
+          ? "atlas-edge-highlighted"
+          : "",
       })),
     [intelligence.edges, selected, affected],
   );

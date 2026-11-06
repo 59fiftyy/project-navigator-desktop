@@ -1,5 +1,12 @@
 # Current update
 
+- [ ] Replace Dashboard map preview with expandable full file tree; keep only TopBar Re-analyze.
+- [ ] Add confirmed, real documentation deletion with incremental refresh and regression tests.
+- [ ] Stabilize dependency selection and highlight both connection directions.
+- [ ] Add switchable complete project hierarchy graph with no inventory truncation.
+- [ ] Add concise explanations for graph types, insights and impact.
+- [ ] Run regression tests and exercise updated UI flows.
+
 - [x] Fix custom documentation discovery and immediate refresh.
 - [x] Show explicit task totals, five open tasks, expandable list, content-sized panel.
 - [x] Fix concurrent LOC counting and surface unreadable-file uncertainty.

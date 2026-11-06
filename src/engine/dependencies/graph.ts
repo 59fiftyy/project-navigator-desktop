@@ -1,5 +1,28 @@
 import type { CodeIntelligence, DependencyEdge } from "./types";
 
+/** Direct importers and imports are separate from transitive change impact. */
+export function directConnections(edges: DependencyEdge[], path: string): Set<string> {
+  const neighbors = new Set<string>();
+  for (const edge of edges) {
+    if (edge.source === path) neighbors.add(edge.target);
+    if (edge.target === path) neighbors.add(edge.source);
+  }
+  return neighbors;
+}
+
+export function isHighlightedConnection(
+  edge: DependencyEdge,
+  selected: string | null,
+  affected: ReadonlySet<string>,
+): boolean {
+  return Boolean(
+    selected &&
+    (edge.source === selected ||
+      edge.target === selected ||
+      (affected.has(edge.source) && affected.has(edge.target))),
+  );
+}
+
 /** Reverse dependency traversal: all files potentially affected by a change. */
 export function impactedFiles(edges: DependencyEdge[], path: string): Set<string> {
   const reverse = new Map<string, string[]>();

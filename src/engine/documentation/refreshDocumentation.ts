@@ -44,7 +44,7 @@ export async function refreshProjectDocumentation(
       ? context.project.files.filter((f) => f.path !== removedPath)
       : context.project.files;
 
-  const project = isNewFile
+  const project = changed
     ? {
         ...context.project,
         files,
@@ -55,10 +55,8 @@ export async function refreshProjectDocumentation(
       }
     : context.project;
 
-  const classifiedFiles = isNewFile
-    ? classifyFiles(project.files)
-    : context.analysis.classifiedFiles;
-  const analysis = isNewFile ? analyzeProject(project, classifiedFiles) : context.analysis;
+  const classifiedFiles = changed ? classifyFiles(project.files) : context.analysis.classifiedFiles;
+  const analysis = changed ? analyzeProject(project, classifiedFiles) : context.analysis;
 
   const knowledge = await buildProjectKnowledge(project, classifiedFiles, fs);
   const baseContext = buildProjectContextBase(project, analysis, knowledge);
