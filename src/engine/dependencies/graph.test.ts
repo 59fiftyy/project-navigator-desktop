@@ -6,7 +6,7 @@ describe("graph selection", () => {
     { source: "app.ts", target: "service.ts" },
     { source: "service.ts", target: "helper.ts" },
     { source: "other.ts", target: "app.ts" },
-  ];
+  ] as const;
   it("includes both imports and importers when a file is selected", () => {
     expect([...directConnections(edges, "service.ts")].sort()).toEqual(["app.ts", "helper.ts"]);
   });
